@@ -14,14 +14,6 @@ export interface UserDatabase {
   email: string;
   type: string;
   pontos: number;
-  planos: {
-    _id:string,
-    title:string,
-    features:[string],
-    icon: string,
-    price: string,
-    color:string
-  };
   token: string;
 }
 
@@ -37,7 +29,7 @@ export interface CreateUser {
   password: string;
 }
 
-const url = "http://localhost:3000";
+const url = "http://localhost:8000";
 
 export const authApi = (user: UserDatabase | null, Login: (userData: any) => void) => {
   const login = async (user: User): Promise<any> => {
@@ -97,6 +89,7 @@ export const authApi = (user: UserDatabase | null, Login: (userData: any) => voi
     try {
       const response = await axios.post(`${url}/register`, user);
       return response.status === 201;
+      
     } catch (error: any) {
       console.error("Erro ao registrar", error?.response?.data || error.message);
       return false;

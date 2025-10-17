@@ -6,6 +6,7 @@ import Home from './pages/Home';
 
 import Login from './pages/login/login';
 import Signup from './pages/login/signup';
+import Verification from './pages/login/verification';
 
 import { AuthProvider } from './AuthProvider';
 
@@ -52,7 +53,7 @@ const InnerApp: React.FC = () => {
 
             <Route exact path="/login" component={Login} />
             <Route exact path="/signup" component={Signup} />
-
+            <Route exact path="/verification" component={Verification} />
             <Route exact path="/home" component={Home} />
 
             

@@ -8,14 +8,6 @@ interface User {
     email: string;
     type: string;
     pontos: number;
-    planos: {
-        _id:string,
-        title:string,
-        features:[string],
-        icon: string,
-        price: string,
-        color:string
-    };
     title:string;
     token: string;
 }
