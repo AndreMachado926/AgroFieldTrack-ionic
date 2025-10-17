@@ -1,0 +1,131 @@
+.signup-page .signup-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.signup-page ion-content {
+  --background: url('/icon/images.jpg') center center / cover no-repeat;
+  background-size: cover;
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+}
+
+.signup-page .input-fill-solid.sc-ion-input-md-h {
+  background-color: #ffffff;
+}
+
+.signup-page .login-container {
+  background: #fff;
+  backdrop-filter: blur(8px);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  margin-top: 2vh;
+}
+
+.login-logo .logo-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.login-logo h2 {
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.login-logo .logo-icon {
+  width: 55px;
+  height: 55px;
+  margin-top: -10px;
+}
+
+.signup-page ion-item {
+  --background: #ffffff;
+  --border-color: transparent;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+}
+
+.signup-page ion-input,
+.signup-page ion-label {
+  color: #000 !important;
+}
+
+.signup-page ::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.signup-page .login-fixed {
+  position:relative;
+  bottom: 1rem;
+  width: 100%;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.signup-page .login-fixed span {
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.signup-page .login-fixed a {
+  color: #0c59aa;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.signup-page .login-fixed a:hover {
+  color: #0056b3;
+}
+
+.modal-input select {
+  width: 100%;
+  padding: 10px;
+  font-size: 15px;
+  color: black;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: white;
+}
+
+.modal-input .select-icon {
+  color: #3B9C9B;
+}
+
+.modal-input .select-placeholder {
+  color: #aaa;
+}
+
+.wave-animation {
+  animation: wave-bounce 1.7s infinite ease-in-out;
+}
+
+.wave-char {
+  display: inline-block;
+  animation: wave-bounce 1.7s infinite ease-in-out;
+}
+
+@keyframes wave-bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+}
