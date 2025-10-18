@@ -1,0 +1,119 @@
+/* 🌿 Fundo geral */
+.page-background {
+  --background: #FFF9E5 !important;
+  /* Fundo creme */
+  background-color: #FFF9E5 !important;
+  color: #004030;
+}
+
+/* 🌿 Toolbar */
+.custom-toolbar {
+  --background: #004030 !important;
+  --color: #FFF9E5 !important;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 🌿 Cartões */
+.settings-card {
+  margin: 1rem;
+  border-radius: 16px;
+  background-color: #DCD0A8;
+  box-shadow: 0 3px 8px rgba(0, 64, 48, 0.1);
+  padding: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: #004030;
+}
+
+.settings-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 64, 48, 0.2);
+}
+
+/* 🌿 Lista de opções */
+ion-list {
+  background-color: transparent !important;
+}
+
+ion-item {
+  --background: #DCD0A8 !important;
+  --color: #004030 !important;
+  border-radius: 12px;
+  margin: 8px 12px;
+  --padding-start: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 64, 48, 0.08);
+}
+
+
+
+/* 🌿 Ícones */
+ion-icon {
+  color: #004030;
+}
+
+/* 🌿 Botão Logout */
+.logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #4A9782;
+  color: #FFF9E5;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  list-style: none;
+}
+
+.logout:hover {
+  background-color: #004030;
+}
+
+/* 🌿 Modal */
+.custom-modal {
+  background-color: #FFF9E5 !important;
+  color: #004030 !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 64, 48, 0.2);
+  --background: #FFF9E5 !important;
+}
+
+/* 🌿 Textarea */
+.textarea {
+  background: #FFF9E5;
+  border: 1px solid #DCD0A8;
+  border-radius: 10px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  color: #004030;
+  box-shadow: inset 0 2px 4px rgba(0, 64, 48, 0.05);
+}
+
+/* 🌿 Botões */
+.feedback-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.feedback-buttons ion-button {
+  --background: #004030;
+  --color: #FFF9E5;
+  --border-radius: 12px;
+  font-weight: 600;
+}
+
+.feedback-buttons ion-button:hover {
+  --background: #4A9782;
+}
+
+/* 🌿 Responsividade */
+@media (max-width: 600px) {
+  .feedback-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
