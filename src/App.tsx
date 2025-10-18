@@ -51,7 +51,7 @@ const InnerApp: React.FC = () => {
           <Switch>
           
 
-            <Route exact path="/login" component={Login} />
+            <Route exact path="/" component={Login} />
             <Route exact path="/signup" component={Signup} />
             <Route exact path="/verification" component={Verification} />
             <Route exact path="/home" component={Home} />

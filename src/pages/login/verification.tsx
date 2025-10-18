@@ -19,7 +19,7 @@ const Verification: React.FC = () => {
         setToast({ show: true, message: "Email verificado com sucesso!", color: "success" });
 
         setTimeout(() => {
-          history.push("/login");
+          history.push("/");
         }, 2000);
       } catch (error) {
         setToast({ show: true, message: "Erro ao verificar o email.", color: "danger" });
@@ -38,21 +38,13 @@ const Verification: React.FC = () => {
           <div className="static-splash">
             <div className="static-splash-content">
               <img
-                src="/icon/icon.png"
+                src="/icon/image.png"
                 alt="SeaWatch Logo"
-                className="splash-logo wave-animation"
+                className="splash-logo "
               />
-              <h1 className="splash-title wave-animation">
-                {"Marineer".split("").map((char, index) => (
-                  <span
-                    key={index}
-                    className="wave-char"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    {char}
-                  </span>
-                ))}
-              </h1>
+                <h1 className="splash-title" style={{ color: "black"}}>
+                  AgroFieldTrack
+                </h1>
             </div>
           </div>
 
@@ -64,7 +56,7 @@ const Verification: React.FC = () => {
             {loading ? (
               <IonSpinner name="crescent" />
             ) : (
-              <IonButton expand="block" onClick={() => history.push("/login")}>
+              <IonButton expand="block" onClick={() => history.push("/")}>
                 Ir para Login
               </IonButton>
             )}

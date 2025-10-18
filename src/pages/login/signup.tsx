@@ -61,7 +61,7 @@ const Signup: React.FC = () => {
       setLoading(false);
       setShowAlert(true);
       setTimeout(() => {
-        history.push("/login");
+        history.push("/");
       }, 7000);
     } else {
       setPendingError("Erro ao registrar, verifique se o email ou username já estão em uso.");
@@ -78,7 +78,7 @@ const Signup: React.FC = () => {
     <>
 
 
-      {!showLoading && (
+      {(
         <IonPage className="signup-page">
           <IonContent fullscreen>
             <IonAlert
@@ -97,18 +97,10 @@ const Signup: React.FC = () => {
                   <img
                     src="/icon/image.png"
                     alt="SeaWatch Logo"
-                    className="splash-logo wave-animation"
+                    className="splash-logo "
                   />
-                  <h1 className="splash-title">
-                    {"Marineer".split("").map((char, index) => (
-                      <span
-                        key={index}
-                        className="wave-char"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        {char}
-                      </span>
-                    ))}
+                  <h1 className="splash-title" style={{ color: "black"}}>
+                    AgroFieldTrack
                   </h1>
                 </div>
               </div>
@@ -161,7 +153,7 @@ const Signup: React.FC = () => {
                 </IonButton>
                 <div >
                   <span style={{ color: "#8b8b8bda" }}>Já tem uma conta? </span>
-                  <a onClick={() => goTo("/login")} style={{ color: "#3396f1af" }}>Entrar</a>
+                  <a onClick={() => goTo("/")} style={{ color: "#4A9782" }}>Entrar</a>
                 </div>
               </div>
             </div>

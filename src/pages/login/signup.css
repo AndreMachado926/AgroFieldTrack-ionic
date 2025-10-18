@@ -7,6 +7,21 @@
   width: 100%;
 }
 
+/* Aplica a todos os ion-input dentro da página de signup */
+.signup-page ion-input {
+  --background: #ffffff !important;
+  /* fundo branco */
+  --color: #000000 !important;
+  /* cor do texto */
+  --placeholder-color: rgba(0, 0, 0, 0.5) !important;
+  /* cor do placeholder */
+}
+
+/* Garante que ion-item não sobrepõe o fundo */
+.signup-page ion-item {
+  --background: transparent !important;
+}
+
 .signup-page ion-content {
   --background: url('/icon/images.jpg') center center / cover no-repeat;
   background-size: cover;
@@ -16,9 +31,6 @@
   justify-content: center;
 }
 
-.signup-page .input-fill-solid.sc-ion-input-md-h {
-  background-color: #ffffff;
-}
 
 .signup-page .login-container {
   background: #fff;
@@ -38,6 +50,17 @@
   justify-content: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+}
+
+.signup-page ion-button {
+  --background: #004030; /* verde escuro */
+  --color: #FFFFFF;       /* texto branco */
+  --border-radius: 0.5rem;
+  transition: background 0.3s;
+}
+
+.signup-page ion-button:hover {
+  --background: #336654; /* verde mais claro no hover */
 }
 
 .login-logo h2 {
@@ -71,7 +94,7 @@
 }
 
 .signup-page .login-fixed {
-  position:relative;
+  position: relative;
   bottom: 1rem;
   width: 100%;
   text-align: center;
@@ -122,9 +145,13 @@
 }
 
 @keyframes wave-bounce {
-  0%, 60%, 100% {
+
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
   }
+
   30% {
     transform: translateY(-10px);
   }
