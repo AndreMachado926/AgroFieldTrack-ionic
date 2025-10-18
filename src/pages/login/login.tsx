@@ -37,7 +37,7 @@ const Login: React.FC = () => {
    const result = await login(credentials);
 
     if (result.success && result.data.token) {
-      history.push("/home");
+      history.push("/lista");
     } else {
       setPendingError(result.error);
       setLoading(false);

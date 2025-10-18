@@ -1,19 +1,16 @@
 import { Redirect, Route } from 'react-router-dom';
 import { Switch } from 'react-router-dom';
-import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
+import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import Home from './pages/Home';
 
 import Login from './pages/login/login';
 import Signup from './pages/login/signup';
-<<<<<<< Updated upstream
 import Verification from './pages/login/verification';
-
-=======
+import VeterinariosPage from './pages/lista_veterinarios/veterinarios';
 import lista from './pages/lista/listas';
->>>>>>> Stashed changes
 import { AuthProvider } from './AuthProvider';
-
+import { setupIonicReact } from '@ionic/react';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -30,8 +27,6 @@ import '@ionic/react/css/text-alignment.css';
 import '@ionic/react/css/text-transformation.css';
 import '@ionic/react/css/flex-utils.css';
 import '@ionic/react/css/display.css';
-import '@ionic/react/css/palettes/dark.system.css';
-
 
 /* Theme variables */
 import './theme/variables.css';
@@ -61,7 +56,7 @@ const InnerApp: React.FC = () => {
             <Route exact path="/home" component={Home} />
 
             <Route exact path="/lista" component={lista} />
-
+            <Route exact path="/veterinarios" component={VeterinariosPage} />
           </Switch>
         </IonRouterOutlet>
       </IonReactRouter>

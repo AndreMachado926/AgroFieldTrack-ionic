@@ -36,8 +36,14 @@ import {
   sparklesOutline,
   personOutline,
   leafOutline,
-  addOutline,  // add this import
+  addOutline,
+  bandageOutline
 } from "ionicons/icons";
+import * as jwtDecode from "jwt-decode";
+
+interface DecodedToken {
+  user_id: string;
+}
 
 type Animal = {
   _id?: string;
@@ -72,14 +78,56 @@ const AnimaisPage: React.FC = () => {
   const [newAnimal, setNewAnimal] = useState<Partial<Animal>>({});
   const [newPlantacao, setNewPlantacao] = useState<Partial<Plantacao>>({});
 
-  const API_BASE = ("http://localhost:8000").replace(/\/+$/,'');
+  const API_BASE = ("http://localhost:8000").replace(/\/+$/, '');
+
+  // helper: ler token do cookie e decodificar payload JWT
+  const getTokenFromCookie = (name = 'jwt'): string | null => {
+    const match = document.cookie.split('; ').find(c => c.startsWith(`${name}=`));
+    return match ? decodeURIComponent(match.split('=')[1]) : null;
+  };
+
+  // lê o cookie "auth" e tenta extrair o token JWT (suporta formatos: token directo, "name=token" ou JSON)
+  const getJwtFromAuthCookie = (): string | null => {
+    const raw = document.cookie.split(';').map(s => s.trim()).find(c => c.startsWith('auth='));
+    if (!raw) return null;
+    const val = decodeURIComponent(raw.substring(5)); // remove "auth="
+    const jwtMatch = val.match(/[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+/);
+    if (jwtMatch && jwtMatch[0]) return jwtMatch[0];
+    if (val.split('.').length === 3) return val;
+    return null;
+  };
+
+  // tenta obter userId do cookie (cliente) ou do servidor (/me)
+  const getUserIdFromCookieOrServer = async (): Promise<string | null> => {
+    // 1) tenta cookie no cliente
+    const token = getJwtFromAuthCookie();
+    if (token) {
+      try {
+        const decoded = (jwtDecode as any)(token);
+        return decoded?.user_id || decoded?.id || decoded?.sub || null;
+      } catch (e) {
+        console.warn('jwt-decode falhou:', e);
+      }
+    }
+
+    // 2) fallback: pedir ao servidor (usa cookie httpOnly)
+    try {
+      const res = await axios.get(`${API_BASE}/me`, { withCredentials: true });
+      // espere res.data ter algo como { user_id: '...' } ou { user: { _id: '...' } }
+      return res.data?.user_id || res.data?.id || res.data?._id || res.data?.user?._id || null;
+    } catch (err) {
+      console.warn('fallback /me falhou:', err);
+      return null;
+    }
+  };
 
   const fetchAnimais = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${API_BASE}/animais`);
-      // axios coloca o payload em res.data
+      const userId = await getUserIdFromCookieOrServer();
+      if (!userId) throw new Error('User ID não encontrado (auth cookie httpOnly ou ausente)');
+      const res = await axios.get(`${API_BASE}/animais/${userId}`, { withCredentials: true });
       const payload = res.data;
       const data = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : (payload.data ?? payload));
       setAnimais(data);
@@ -88,6 +136,7 @@ const AnimaisPage: React.FC = () => {
       const msg = err?.response?.data?.message || err.message || "Erro ao obter animais";
       setError(msg);
       setAnimais([]);
+      if (err?.response?.status === 401) window.location.href = '/login';
     } finally {
       setLoading(false);
     }
@@ -97,7 +146,10 @@ const AnimaisPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${API_BASE}/plantacoes`);
+      // usa o mesmo fallback (cookie decode ou /me) para obter userId
+      const userId = await getUserIdFromCookieOrServer();
+      if (!userId) throw new Error('User ID não encontrado (auth cookie httpOnly ou ausente)');
+      const res = await axios.get(`${API_BASE}/plantacoes/${userId}`, { withCredentials: true });
       const payload = res.data;
       const data = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : (payload.data ?? payload));
       setPlantacoes(data);
@@ -106,6 +158,7 @@ const AnimaisPage: React.FC = () => {
       const msg = err?.response?.data?.message || err.message || "Erro ao obter plantações";
       setError(msg);
       setPlantacoes([]);
+      if (err?.response?.status === 401) window.location.href = '/login';
     } finally {
       setLoading(false);
     }
@@ -113,31 +166,33 @@ const AnimaisPage: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      // obtém userId usando o helper (tenta cookie -> /me)
+      const userId = await getUserIdFromCookieOrServer();
+      if (!userId) throw new Error('User ID não encontrado (auth cookie httpOnly ou ausente)');
+
       if (segment === 'animais') {
-        // Add default values for required fields
         const animalData = {
           ...newAnimal,
-          localizacaoX: 0, // you might want to get real coordinates
-          localizacaoY: 0, // you might want to get real coordinates
-          dono_id: "65a6b1234c5d6e7f89012345" // replace with actual user ID
+          localizacaoX: 0,
+          localizacaoY: 0,
+          dono_id: userId
         };
 
-        if (!animalData.nome || !animalData.idade || !animalData.raca) {
+        if (!animalData.nome || animalData.idade === undefined || !animalData.raca) {
           alert('Por favor preencha todos os campos');
           return;
         }
 
-        await axios.post(`${API_BASE}/animais`, animalData);
-        await fetchAnimais(); // refresh the list
+        await axios.post(`${API_BASE}/animais`, animalData, { withCredentials: true });
+        await fetchAnimais();
         setShowModal(false);
-        setNewAnimal({}); // reset form
+        setNewAnimal({});
       } else {
-        // Handle plantação creation
         const plantacaoData = {
           ...newPlantacao,
           localizacaoX: 0,
           localizacaoY: 0,
-          dono_id: "65a6b1234c5d6e7f89012345"
+          dono_id: userId
         };
 
         if (!plantacaoData.planta) {
@@ -145,14 +200,18 @@ const AnimaisPage: React.FC = () => {
           return;
         }
 
-        await axios.post(`${API_BASE}/plantacoes`, plantacaoData);
+        await axios.post(`${API_BASE}/plantacoes`, plantacaoData, { withCredentials: true });
         await fetchPlantacoes();
         setShowModal(false);
         setNewPlantacao({});
       }
     } catch (err: any) {
       console.error('Erro ao salvar:', err);
-      alert(err?.response?.data?.message || 'Erro ao salvar');
+      if ((err?.message || '').toLowerCase().includes('user id') || (err?.message || '').toLowerCase().includes('token')) {
+        window.location.href = '/login';
+      } else {
+        alert(err?.response?.data?.message || err.message || 'Erro ao salvar');
+      }
     }
   };
 
@@ -425,7 +484,7 @@ const AnimaisPage: React.FC = () => {
                         placeholder="Nome do animal"
                         value={newAnimal.nome}
                         debounce={0}
-                        onIonInput={e => setNewAnimal({...newAnimal, nome: e.detail.value!})}
+                        onIonInput={e => setNewAnimal({ ...newAnimal, nome: e.detail.value! })}
                         style={{
                           '--color': '#004030',
                           '--placeholder-color': '#004030',
@@ -443,7 +502,7 @@ const AnimaisPage: React.FC = () => {
                         placeholder="Idade do animal"
                         value={newAnimal.idade}
                         debounce={0}
-                        onIonInput={e => setNewAnimal({...newAnimal, idade: Number(e.detail.value)})}
+                        onIonInput={e => setNewAnimal({ ...newAnimal, idade: Number(e.detail.value) })}
                         style={{
                           '--color': '#004030',
                           '--placeholder-color': '#004030',
@@ -460,7 +519,7 @@ const AnimaisPage: React.FC = () => {
                         placeholder="Raça do animal"
                         value={newAnimal.raca}
                         debounce={0}
-                        onIonInput={e => setNewAnimal({...newAnimal, raca: e.detail.value!})}
+                        onIonInput={e => setNewAnimal({ ...newAnimal, raca: e.detail.value! })}
                         style={{
                           '--color': '#004030',
                           '--placeholder-color': '#004030',
@@ -480,7 +539,7 @@ const AnimaisPage: React.FC = () => {
                         placeholder="Nome da plantação"
                         value={newPlantacao.planta}
                         debounce={0}
-                        onIonInput={e => setNewPlantacao({...newPlantacao, planta: e.detail.value!})}
+                        onIonInput={e => setNewPlantacao({ ...newPlantacao, planta: e.detail.value! })}
                         style={{
                           '--color': '#004030',
                           '--placeholder-color': '#004030',
@@ -537,46 +596,62 @@ const AnimaisPage: React.FC = () => {
         />
       </IonButton>
 
-      {/* MENU INFERIOR */}
-      <IonFooter
-        style={{
-          borderTop: "2px solid #DCD0A8",
-          backgroundColor: "#DCD0A8", // tom claro do footer / navbar
-        }}
-      >
-        <IonTabBar
-          slot="bottom"
+      {/* MENU INFERIOR - UMA SÓ LINHA */}
+      <IonFooter>
+        <IonToolbar
           style={{
-            backgroundColor: "#DCD0A8", // tom claro
-            color: "#004030",
-            "--color-selected": "#004030",
+            "--background": "#DCD0A8",
+            "--border-color": "#DCD0A8",
+            "--min-height": "64px",
+            "--padding": "6px 6px"
           }}
         >
-          <IonTabButton tab="mapa">
-            <IonIcon icon={mapOutline} style={{ color: "#004030" }} />
-            <IonLabel style={{ color: "#004030" }}>Mapa</IonLabel>
-          </IonTabButton>
+          <div style={{
+            display: "flex",
+            flexWrap: "nowrap",        // forçar 1 linha
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+            gap: "6px",
+            overflow: "hidden"        // evita overflow vertical/linhas extras
+          }}>
+            <IonButton fill="clear" href="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mapa</IonLabel>
+              </div>
+            </IonButton>
 
-          <IonTabButton tab="market">
-            <IonIcon icon={cartOutline} style={{ color: "#004030" }} />
-            <IonLabel style={{ color: "#004030" }}>Market</IonLabel>
-          </IonTabButton>
+            <IonButton fill="clear" href="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Market</IonLabel>
+              </div>
+            </IonButton>
 
-          <IonTabButton tab="lista" selected>
-            <IonIcon icon={listOutline} style={{ color: "#004030" }} />
-            <IonLabel style={{ color: "#004030" }}>Lista</IonLabel>
-          </IonTabButton>
+            <IonButton fill="clear" href="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lista</IonLabel>
+              </div>
+            </IonButton>
 
-          <IonTabButton tab="ai">
-            <IonIcon icon={sparklesOutline} style={{ color: "#004030" }} />
-            <IonLabel style={{ color: "#004030" }}>AI</IonLabel>
-          </IonTabButton>
+            <IonButton fill="clear" routerLink="/veterinarios" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Veterinária</IonLabel>
+              </div>
+            </IonButton>
 
-          <IonTabButton tab="perfil">
-            <IonIcon icon={personOutline} style={{ color: "#004030" }} />
-            <IonLabel style={{ color: "#004030" }}>Perfil</IonLabel>
-          </IonTabButton>
-        </IonTabBar>
+
+            <IonButton fill="clear" href="/perfil" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <IonIcon icon={personOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Perfil</IonLabel>
+              </div>
+            </IonButton>
+          </div>
+        </IonToolbar>
       </IonFooter>
     </IonPage>
   );
