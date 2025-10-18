@@ -47,9 +47,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const logout = () => {
         setUser(null);
+        localStorage.removeItem("user");
     };
 
-    const isAuthenticated = () => !!user;
+    const isAuthenticated = () => !!user && !!user.token;
+
 
 
     const updateProPic=(profilePic:string)=>{

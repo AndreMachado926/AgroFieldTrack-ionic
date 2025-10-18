@@ -1,7 +1,7 @@
 import { IonAlert, IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonImg, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonTitle, IonToolbar } from '@ionic/react';
 import { comunidadeApi, Publicacoes } from '../../hooks/MarketApi';
 import { useEffect, useRef, useState } from 'react';
-import { trashBin, chatbubbleOutline, createSharp, happyOutline, sadOutline, saveOutline, createOutline, trashBinOutline, chevronExpandOutline, sendSharp, qrCodeOutline, trophyOutline, settingsOutline, } from 'ionicons/icons';
+import { trashBin, chatbubbleOutline, createSharp, happyOutline, sadOutline, cashOutline, createOutline, trashBinOutline, chevronExpandOutline, sendSharp, qrCodeOutline, trophyOutline, settingsOutline, arrowBack, } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { RouteComponentProps } from 'react-router';
 import { useAuth } from '../../AuthProvider';
@@ -25,7 +25,7 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
 
     const [publicacao, setPublicacao] = useState<Publicacoes>({
         _id: "",
-        pontos: 0,
+        preco: 0,
         author: {
             _id: "",
             username: ""
@@ -34,7 +34,7 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
         message: "",
         tags: [],
         imagens: "",
-        publication_type: "",
+        publication_type: "publi",
         comentarios: [],
         createdAt: ""
     });
@@ -186,24 +186,30 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
                     />
 
                     <IonButtons slot="end">
-                        <IonButton fill="clear">
+                        <IonButton fill="clear" href="/settings" >
                             <IonIcon
                                 icon={settingsOutline}
                                 style={{ color: "#004030", fontSize: "24px" }}
                             />
                         </IonButton>
                     </IonButtons>
+                    <IonButtons slot="start">
+                        <IonButton fill="clear" href="/market" >
+                            <IonIcon
+                                icon={arrowBack}
+                                style={{ color: "#004030", fontSize: "24px" }}
+                            />
+                        </IonButton>
+                    </IonButtons>
                     <IonButtons slot="end">
-                        {user && user.username === publicacao.author.username && (
-                            <>
-                                <IonButton onClick={() => setShowEditModal(true)} size='large'>
-                                    <IonIcon icon={createSharp} slot="icon-only" />
-                                </IonButton>
-                                <IonButton onClick={() => setShowDeleteAlert(true)} size='large'>
-                                    <IonIcon icon={trashBin} slot="icon-only" />
-                                </IonButton>
-                            </>
-                        )}
+                        <>
+                            <IonButton onClick={() => setShowEditModal(true)} size='large'>
+                                <IonIcon icon={createSharp} slot="icon-only" />
+                            </IonButton>
+                            <IonButton onClick={() => setShowDeleteAlert(true)} size='large'>
+                                <IonIcon icon={trashBin} slot="icon-only" />
+                            </IonButton>
+                        </>
                     </IonButtons>
                 </IonToolbar>
             </IonHeader>
@@ -236,6 +242,29 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
                         <p><strong></strong> {publicacao.message}</p>
                     </IonCardContent>
 
+                    {publicacao.preco > 0 && (
+                        <IonCardContent className="card-content" style={{ marginTop: '-10px' }}>
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'flex-start',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    color: '#004030',
+                                    fontSize: '16px',
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                <IonIcon icon={cashOutline} style={{ fontSize: '20px', color: '#004030' }} />
+                                <span>
+                                    Preço:{' '}
+                                    {publicacao.preco && publicacao.preco > 0
+                                        ? `€${publicacao.preco.toFixed(2)}`
+                                        : 'Grátis'}
+                                </span>
+                            </div>
+                        </IonCardContent>
+                    )}
                     {publicacao.imagens && (
                         <IonCardContent style={{ marginTop: '-35px' }}>
                             <div style={{ position: 'relative' }}>
@@ -293,14 +322,9 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
                             </div>
                         </div>
                     </IonCardContent>
-                    {publicacao.publication_type === 'evento' && (
-                        <IonCardContent className="card-tags tags-conteudo">
-                            <IonChip color="warning" outline>
-                                <IonIcon size="small" icon={trophyOutline} style={{ marginRight: '4px' }} />
-                                {publicacao.pontos || 0}
-                            </IonChip>
-                        </IonCardContent>
-                    )}
+                    <IonCardContent className="card-tags tags-conteudo">
+
+                    </IonCardContent>
                     <IonCardContent>
                         <div
                             style={{
@@ -495,6 +519,21 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
 
                                         <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
                                             <IonInput
+                                                type="number"
+                                                label="Preço (€)"
+                                                labelPlacement="stacked"
+                                                placeholder="Digite o preço do produto"
+                                                name="preco"
+                                                value={publicacao.preco}
+                                                onIonInput={(e) => {
+                                                    const value = parseFloat(e.detail.value ?? "0");
+                                                    setPublicacao(prev => ({ ...prev, preco: isNaN(value) ? 0 : value }));
+                                                }}
+                                            />
+                                        </IonItem>
+
+                                        <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
+                                            <IonInput
                                                 label="Tags"
                                                 labelPlacement="stacked"
                                                 placeholder="Digite as tags separadas por vírgula"
@@ -527,39 +566,6 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
                                                 }}
                                             />
                                         </IonItem>
-
-                                        <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                                            <IonSelect
-                                                label="Tipo"
-                                                labelPlacement="stacked"
-                                                placeholder="Escolha o tipo"
-                                                name="publication_type"
-                                                value={publicacao.publication_type}
-                                                onIonChange={handleChange}
-                                            >
-                                                <IonSelectOption value="publi">Publicação</IonSelectOption>
-                                                <IonSelectOption value="evento">Evento</IonSelectOption>
-                                            </IonSelect>
-                                        </IonItem>
-
-                                        {publicacao.publication_type === 'evento' && (
-                                            <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                                                <IonInput
-                                                    label="Pontos"
-                                                    labelPlacement="stacked"
-                                                    type="number"
-                                                    placeholder="Insira os pontos"
-                                                    name="pontos"
-                                                    value={publicacao.pontos}
-                                                    onIonInput={(e) =>
-                                                        setPublicacao(prev => ({
-                                                            ...prev,
-                                                            pontos: parseInt(e.detail.value!, 10) || 0,
-                                                        }))
-                                                    }
-                                                />
-                                            </IonItem>
-                                        )}
                                     </IonList>
                                 </IonCol>
                             </IonRow>

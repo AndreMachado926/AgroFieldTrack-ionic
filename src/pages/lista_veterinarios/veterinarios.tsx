@@ -159,7 +159,7 @@ const VeterinariosPage: React.FC = () => {
           />
 
           <IonButtons slot="end">
-            <IonButton fill="clear">
+            <IonButton fill="clear"  href="/settings" >
               <IonIcon
                 icon={settingsOutline}
                 style={{ color: "#004030", fontSize: "24px" }}
@@ -287,7 +287,7 @@ const VeterinariosPage: React.FC = () => {
             </IonButton>
 
 
-            <IonButton fill="clear" href="/perfil" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+            <IonButton fill="clear" href="/settings/conta" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={personOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Perfil</IonLabel>

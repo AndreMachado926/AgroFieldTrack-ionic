@@ -15,6 +15,8 @@ import MarketDetalhes from './pages/marketplace/marketdetails';
 import Market from './pages/marketplace/market';
 import Settings from './pages/SettingsPages/Settings';
 import Conta from './pages/SettingsPages/conta';
+import Mapa from './pages/mapa/mapa';
+import PrivateRoutes from './components/PrivateRoutes';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -53,17 +55,16 @@ const InnerApp: React.FC = () => {
         <IonRouterOutlet>
           <Switch>
 
-
             <Route exact path="/" component={Login} />
             <Route exact path="/signup" component={Signup} />
             <Route exact path="/verification" component={Verification} />
-            <Route exact path="/home" component={Home} />
-            <Route exact path="/marketdetalhes/:id" component={MarketDetalhes} />
-            <Route exact path="/market" component={Market} />
-            <Route exact path="/lista" component={lista} />
-            <Route exact path="/veterinarios" component={VeterinariosPage} />
-            <Route exact path="/settings" component={Settings} />
-            <Route exact path="/settings/conta" component={Conta} />
+            <PrivateRoutes exact path="/marketdetalhes/:id" component={MarketDetalhes} />
+            <PrivateRoutes exact path="/market" component={Market} />
+            <PrivateRoutes exact path="/lista" component={lista} />
+            <PrivateRoutes exact path="/veterinarios" component={VeterinariosPage} />
+            <PrivateRoutes exact path="/settings" component={Settings} />
+            <PrivateRoutes exact path="/settings/conta" component={Conta} />
+            <PrivateRoutes exact path="/mapa" component={Mapa} />
           </Switch>
         </IonRouterOutlet>
       </IonReactRouter>

@@ -7,7 +7,7 @@ export interface Participante {
 }
 
 export interface Publicacoes {
-    pontos: number;
+    preco: number;
     _id: string
     author: Participante,
     title: string,
@@ -48,7 +48,7 @@ export const comunidadeApi = () => {
             formData.append('title', publicacao.title);
             formData.append('message', publicacao.message);
             formData.append('publication_type', publicacao.publication_type);
-            formData.append('pontos', String(publicacao.pontos ?? 0));
+            formData.append('preco', String(publicacao.preco ?? 0));
 
             formData.append('tags', Array.isArray(publicacao.tags) ? publicacao.tags.join(',') : publicacao.tags);
 
@@ -90,8 +90,8 @@ export const comunidadeApi = () => {
 
     const insertDataPublicacoes = async (publicacao: FormData): Promise<any> => {
 
-        if (!publicacao.has('pontos')) {
-            publicacao.append('pontos', '0');
+        if (!publicacao.has('preco')) {
+            publicacao.append('preco', '0');
         }
 
         try {
