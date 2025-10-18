@@ -1,8 +1,8 @@
-import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonPage, IonTitle, IonToolbar, IonSelect, IonSelectOption, IonImg, IonGrid, IonRow, IonCol, IonAccordion, IonAccordionGroup, IonTabBar, IonTabButton, IonList } from '@ionic/react';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonInput, IonItem, IonLabel, IonModal, IonPage, IonTitle, IonToolbar, IonSelect, IonSelectOption, IonImg, IonGrid, IonRow, IonCol, IonAccordion, IonAccordionGroup, IonTabBar, IonTabButton, IonList, IonFooter } from '@ionic/react';
 import { comunidadeApi, Publicacoes } from '../../hooks/MarketApi';
 import { useAuth } from '../../AuthProvider';
 import { useEffect, useRef, useState } from 'react';
-import { openOutline, searchCircleOutline, saveOutline, settingsOutline, mapOutline, cartOutline, listOutline, sparklesOutline, personOutline, addCircleSharp, addOutline } from 'ionicons/icons';
+import { openOutline, searchCircleOutline, saveOutline, settingsOutline, mapOutline, cartOutline, listOutline, sparklesOutline, personOutline, addCircleSharp, addOutline, bandageOutline } from 'ionicons/icons';
 import { useLocation } from 'react-router-dom';
 import './market.css';
 import logo from "../lista/logo.png";
@@ -242,7 +242,7 @@ const comunidade: React.FC = () => {
                                         />
                                     </div>
                                 </IonAccordion>
-                              <div className="ion-padding">
+                                <div className="ion-padding">
                                     <IonButton
                                         expand="full"
                                         style={{
@@ -450,39 +450,61 @@ const comunidade: React.FC = () => {
                             />
                         </IonButton>
                     </IonContent>
-                    <IonTabBar
-                        slot="bottom"
-                        style={{
-                            backgroundColor: "#DCD0A8", // tom claro
-                            color: "#004030",
-                            "--color-selected": "#004030",
-                        }}
-                    >
-                        <IonTabButton tab="mapa">
-                            <IonIcon icon={mapOutline} style={{ color: "#004030" }} />
-                            <IonLabel style={{ color: "#004030" }}>Mapa</IonLabel>
-                        </IonTabButton>
+                    <IonFooter>
+                        <IonToolbar
+                            style={{
+                                "--background": "#DCD0A8",
+                                "--border-color": "#DCD0A8",
+                                "--min-height": "64px",
+                                "--padding": "6px 6px"
+                            }}
+                        >
+                            <div style={{
+                                display: "flex",
+                                flexWrap: "nowrap",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                width: "100%",
+                                gap: "6px",
+                                overflow: "hidden"
+                            }}>
+                                <IonButton fill="clear" routerLink="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                        <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                                        <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mapa</IonLabel>
+                                    </div>
+                                </IonButton>
 
-                        <IonTabButton tab="market">
-                            <IonIcon icon={cartOutline} style={{ color: "#004030" }} />
-                            <IonLabel style={{ color: "#004030" }}>Market</IonLabel>
-                        </IonTabButton>
+                                <IonButton fill="clear" routerLink="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                        <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                                        <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Market</IonLabel>
+                                    </div>
+                                </IonButton>
 
-                        <IonTabButton tab="lista" selected>
-                            <IonIcon icon={listOutline} style={{ color: "#004030" }} />
-                            <IonLabel style={{ color: "#004030" }}>Lista</IonLabel>
-                        </IonTabButton>
+                                <IonButton fill="clear" routerLink="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                        <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                                        <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lista</IonLabel>
+                                    </div>
+                                </IonButton>
 
-                        <IonTabButton tab="ai">
-                            <IonIcon icon={sparklesOutline} style={{ color: "#004030" }} />
-                            <IonLabel style={{ color: "#004030" }}>AI</IonLabel>
-                        </IonTabButton>
+                                <IonButton fill="clear" routerLink="/veterinarios" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                        <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                                        <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Veterinária</IonLabel>
+                                    </div>
+                                </IonButton>
 
-                        <IonTabButton tab="perfil">
-                            <IonIcon icon={personOutline} style={{ color: "#004030" }} />
-                            <IonLabel style={{ color: "#004030" }}>Perfil</IonLabel>
-                        </IonTabButton>
-                    </IonTabBar>
+                                <IonButton fill="clear" routerLink="/perfil" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                                        <IonIcon icon={personOutline} style={{ color: "#004030", fontSize: "18px" }} />
+                                        <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Perfil</IonLabel>
+                                    </div>
+                                </IonButton>
+                            </div>
+                        </IonToolbar>
+                    </IonFooter>
                 </IonPage>
             )}
         </>
