@@ -41,7 +41,9 @@ import {
   personOutline,
   leafOutline,
   addOutline,
-  bandageOutline
+  bandageOutline,
+  arrowUndoOutline,
+  trashOutline
 } from "ionicons/icons";
 import * as jwtDecode from "jwt-decode";
 import L from 'leaflet';
@@ -74,6 +76,7 @@ type Plantacao = {
   _id?: string;
   id?: string;
   planta: string;
+  nome?: string;
   // pontos do polígono: arrays de latitude (pontosx) e longitude (pontosy)
   pontosx?: number[] | null;
   pontosy?: number[] | null;
@@ -436,38 +439,45 @@ const AnimaisPage: React.FC = () => {
         }
       }
 
-      // Se houver coords suficientes, desenha polígono e ajusta bounds
-      if (coords.length >= 3) {
-        const polygon = L.polygon(coords, {
-          color: '#4A9782',
-          weight: 3,
-          opacity: 0.8,
-          fillColor: '#4A9782',
-          fillOpacity: 0.15
-        }).addTo(map);
-        map.fitBounds(polygon.getBounds(), { padding: [40, 40] });
-      } else if (coords.length > 0) {
-        // se apenas um ou dois pontos -> marca e centra
-        const marker = L.marker(coords[0], {
-          icon: L.divIcon({
-            className: 'custom-div-icon',
-            html: `<div style="background:#4A9782;color:#fff;padding:6px 8px;border-radius:6px;font-weight:600">${selectedPlantacao.planta}</div>`,
-            iconSize: [80, 30],
-            iconAnchor: [40, 15]
-          })
-        }).addTo(map);
-        map.setView(coords[0] as L.LatLngExpression, 13);
+      // Se houver pontos, desenha markers e ligações NN
+      if (coords.length > 0) {
+        // Adiciona markers
+        coords.forEach((c, i) => {
+          const m = L.marker(c).addTo(map);
+          try { m.bindTooltip(String(i+1), { permanent: true, direction: 'center', className: 'map-seq-badge' }); } catch (e) {}
+        });
+
+        // Ligações: para cada ponto, conecta aos 2 mais próximos
+        if (coords.length > 1) {
+          const pts = coords.map(c => ({ lat: Number((c as any)[0]), lng: Number((c as any)[1]) }));
+          const dist2 = (a: {lat:number,lng:number}, b: {lat:number,lng:number}) => {
+            const dx = a.lat - b.lat; const dy = a.lng - b.lng; return dx*dx + dy*dy;
+          };
+          for (let i = 0; i < pts.length; i++) {
+            const dists: Array<{ idx: number; d: number }> = [];
+            for (let j = 0; j < pts.length; j++) {
+              if (i === j) continue;
+              dists.push({ idx: j, d: dist2(pts[i], pts[j]) });
+            }
+            dists.sort((a,b) => a.d - b.d);
+            const nearest = dists.slice(0, 2).map(x => x.idx);
+            nearest.forEach(nidx => {
+              L.polyline([[pts[i].lat, pts[i].lng], [pts[nidx].lat, pts[nidx].lng]], { color: '#4A9782', weight: 2, opacity: 0.9 }).addTo(map);
+            });
+          }
+        }
+
+        // Se >=3 pontos, desenha polígono leve
+        if (coords.length >= 3) {
+          const poly = L.polygon(coords, { color: '#4A9782', weight: 1, fillOpacity: 0.04, opacity: 0.5 }).addTo(map);
+        }
+
+        // Ajusta bounds
+        map.fitBounds(L.latLngBounds(coords), { padding: [40, 40] });
       } else if (typeof selectedPlantacao.localizacaoX === 'number' && typeof selectedPlantacao.localizacaoY === 'number') {
         // fallback legacy localizacaoX/Y
         const pt: L.LatLngExpression = [selectedPlantacao.localizacaoX, selectedPlantacao.localizacaoY];
-        L.marker(pt, {
-          icon: L.divIcon({
-            className: 'custom-div-icon',
-            html: `<div style="background:#4A9782;color:#fff;padding:6px 8px;border-radius:6px;font-weight:600">${selectedPlantacao.planta}</div>`,
-            iconSize: [80, 30],
-            iconAnchor: [40, 15]
-          })
-        }).addTo(map);
+        L.marker(pt).addTo(map);
         map.setView(pt, 13);
       } else {
         // nada para mostrar
@@ -1058,10 +1068,8 @@ const AnimaisPage: React.FC = () => {
       <IonModal
         isOpen={showModal}
         onDidDismiss={() => {
-          // fechar modal e limpar estado do mapa de criação
           setShowModal(false);
           setAddPoints([]);
-
           setNewPlantacao({});
           if (mapAddInstanceRef.current) {
             try { mapAddInstanceRef.current.remove(); } catch (e) { /* ignore */ }
@@ -1078,17 +1086,13 @@ const AnimaisPage: React.FC = () => {
             </IonButtons>
           </IonToolbar>
         </IonHeader>
-
         <IonContent style={{ '--background': '#FFF9E5' }}>
           <IonGrid>
             <IonRow>
               <IonCol>
                 {segment === 'animais' ? (
                   <IonList style={{ background: '#FFF9E5' }}>
-                    <IonItem style={{
-                      '--background': '#FFF9E5',
-                      '--color': '#004030',
-                    }}>
+                    <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
                       <IonInput
                         label="Nome"
                         labelPlacement="stacked"
@@ -1096,16 +1100,10 @@ const AnimaisPage: React.FC = () => {
                         value={newAnimal.nome}
                         debounce={0}
                         onIonInput={e => setNewAnimal({ ...newAnimal, nome: e.detail.value! })}
-                        style={{
-                          '--color': '#004030',
-                          '--placeholder-color': '#004030',
-                        }}
+                        style={{ '--color': '#004030', '--placeholder-color': '#004030' }}
                       />
                     </IonItem>
-                    <IonItem style={{
-                      '--background': '#FFF9E5',
-                      '--color': '#004030',
-                    }}>
+                    <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
                       <IonInput
                         label="Idade"
                         labelPlacement="stacked"
@@ -1114,16 +1112,10 @@ const AnimaisPage: React.FC = () => {
                         value={newAnimal.idade}
                         debounce={0}
                         onIonInput={e => setNewAnimal({ ...newAnimal, idade: Number(e.detail.value) })}
-                        style={{
-                          '--color': '#004030',
-                          '--placeholder-color': '#004030',
-                        }}
+                        style={{ '--color': '#004030', '--placeholder-color': '#004030' }}
                       />
                     </IonItem>
-                    <IonItem style={{
-                      '--background': '#FFF9E5',
-                      '--color': '#004030',
-                    }}>
+                    <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
                       <IonInput
                         label="Raça"
                         labelPlacement="stacked"
@@ -1131,19 +1123,15 @@ const AnimaisPage: React.FC = () => {
                         value={newAnimal.raca}
                         debounce={0}
                         onIonInput={e => setNewAnimal({ ...newAnimal, raca: e.detail.value! })}
-                        style={{
-                          '--color': '#004030',
-                          '--placeholder-color': '#004030',
-                        }}
+                        style={{ '--color': '#004030', '--placeholder-color': '#004030' }}
                       />
                     </IonItem>
                   </IonList>
                 ) : (
-                  // plantacao form with map editor
                   <IonList style={{ background: '#FFF9E5' }}>
                     <IonItem>
                       <IonInput
-                        label="Nome da Planta"
+                        label="ó nome"
                         labelPlacement="stacked"
                         placeholder="Nome da plantação"
                         value={newPlantacao.planta}
@@ -1151,18 +1139,29 @@ const AnimaisPage: React.FC = () => {
                         onIonInput={e => setNewPlantacao({ ...newPlantacao, planta: e.detail.value! })}
                       />
                     </IonItem>
-
+                    <IonItem>
+                      <IonInput
+                        label="nome"
+                        labelPlacement="stacked"
+                        placeholder="nome (novo campo)"
+                        value={(newPlantacao as any).nome}
+                        debounce={0}
+                        onIonInput={e => setNewPlantacao({ ...newPlantacao, nome: e.detail.value! })}
+                      />
+                    </IonItem>
                     <div style={{ padding: 12 }}>
                       <div style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
-                        <IonButton size="small" onClick={undoLastPoint}>Desfazer</IonButton>
-                        <IonButton size="small" color="medium" onClick={clearAddPoints}>Limpar</IonButton>
+                        <IonButton size="small" fill="clear" onClick={undoLastPoint} style={{ color: '#4A9782', minWidth: 0, padding: '0 8px' }}>
+                          <IonIcon icon={arrowUndoOutline} style={{ color: '#4A9782', fontSize: 22 }} />
+                        </IonButton>
+                        <IonButton size="small" fill="clear" onClick={clearAddPoints} style={{ color: '#4A9782', minWidth: 0, padding: '0 8px' }}>
+                          <IonIcon icon={trashOutline} style={{ color: '#4A9782', fontSize: 22 }} />
+                        </IonButton>
                         <div style={{ flex: 1, textAlign: 'right', alignSelf: 'center', color: '#004030' }}>
                           Pontos: {addPoints.length}
                         </div>
                       </div>
-
                       <div ref={mapAddRef} id="map-add-container" style={{ width: '100%', minHeight: 300, borderRadius: 8, overflow: 'hidden' }} />
-
                       <div style={{ marginTop: 8 }}>
                         <IonLabel>Editor de pontos — clique no mapa para adicionar pins</IonLabel>
                         <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'flex-start' }}>
@@ -1190,7 +1189,6 @@ const AnimaisPage: React.FC = () => {
                 )}
               </IonCol>
             </IonRow>
-
             <IonRow>
               <IonCol>
                 <IonButton expand="block" onClick={handleSubmit} style={{ '--background': '#004030', marginTop: '20px' }}>
@@ -1512,10 +1510,11 @@ const AnimaisPage: React.FC = () => {
       {/* Floating Action Button */}
       <IonButton
         onClick={() => {
-          // abrir diretamente o formulário de Nova Plantação com o mapa
-          setSegment('plantacoes');
-          // aguardar um tick para que o segmento seja aplicado e o conteúdo do modal renderize
-          setTimeout(() => setShowModal(true), 40);
+          if (segment === 'animais') {
+            setShowModal(true);
+          } else if (segment === 'plantacoes') {
+            setShowModal(true);
+          }
         }}
          style={{
            position: 'fixed',
