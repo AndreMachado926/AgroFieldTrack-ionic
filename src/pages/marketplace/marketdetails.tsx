@@ -156,7 +156,13 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
     const closeModal = () => {
         setShowEditModal(false);
     };
-
+    
+    const getImageSrc = (imagens: string | File | null) => {
+        if (!imagens) return '';
+        if (typeof imagens === 'string') return imagens; 
+        if (imagens instanceof File) return URL.createObjectURL(imagens); 
+        return '';
+    };
     return (
         <IonPage className='detalhes-page'>
             <IonHeader>
@@ -269,9 +275,7 @@ const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
                         <IonCardContent style={{ marginTop: '-35px' }}>
                             <div style={{ position: 'relative' }}>
                                 <IonImg
-                                    src={typeof publicacao.imagens === "string"
-                                        ? publicacao.imagens
-                                        : ""}
+                                    src={getImageSrc(publicacao.imagens)}
                                     alt="Imagem da publicação"
                                     style={{
                                         width: '100%',
