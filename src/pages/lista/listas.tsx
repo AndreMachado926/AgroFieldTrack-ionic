@@ -12,6 +12,8 @@ import {
   IonSegmentButton,
   IonLabel,
   IonContent,
+  IonRefresher,
+  IonRefresherContent,
   IonCard,
   IonItem,
   IonAvatar,
@@ -117,6 +119,12 @@ const AnimaisPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [newAnimal, setNewAnimal] = useState<Partial<Animal>>({});
   const [newPlantacao, setNewPlantacao] = useState<Partial<Plantacao>>({});
+  // add map editor state/refs for creating plantacao
+  const mapAddRef = useRef<HTMLDivElement | null>(null);
+  const mapAddInstanceRef = useRef<L.Map | null>(null);
+  const addMarkersRef = useRef<L.Marker[]>([]);
+  const [addPoints, setAddPoints] = useState<[number, number][]>([]);
+  const [pasteText, setPasteText] = useState<string>('');
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -340,32 +348,9 @@ const AnimaisPage: React.FC = () => {
       }).addTo(map);
 
       // sempre mostra o marker da posição atual (visível mesmo com filtro de dia)
-      const currentIcon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `
-          <div style="
-            background-color: #4A9782;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            border: 2px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-size: 12px;
-          ">
-            Atual
-          </div>
-        `,
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
-      });
-      L.marker([selectedAnimal.localizacaoX || 0, selectedAnimal.localizacaoY || 0], { icon: currentIcon })
-        .addTo(map)
-        .bindPopup(`${selectedAnimal.nome} está aqui agora`);
+      // current position: use default pin marker (with default icon)
+      const currentMarker = L.marker([selectedAnimal.localizacaoX || 0, selectedAnimal.localizacaoY || 0]);
+      currentMarker.addTo(map).bindPopup(`${selectedAnimal.nome} está aqui agora`);
 
       // history: se há um filtro de dia (filterDate !== null) usa filteredLocations (mesmo que seja []),
       // caso contrário usa todo o histórico.
@@ -385,34 +370,12 @@ const AnimaisPage: React.FC = () => {
           const point: L.LatLngExpression = [location.x, location.y];
           points.push(point);
 
-          // Create numbered marker icon (index+1 corresponds to order in filtered history)
-          const sequenceIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: `
-              <div style="
-                background-color: #004030;
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-                border: 2px solid white;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                font-size: 12px;
-              ">
-                ${index + 1}
-              </div>
-            `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-          });
-
-          L.marker(point, { icon: sequenceIcon })
-            .addTo(map)
-            .bindPopup(`Localização ${index + 1}: ${new Date(location.at).toLocaleString()}`);
+          const m = L.marker(point).addTo(map);
+          m.bindPopup(`Localização ${index + 1}: ${new Date(location.at).toLocaleString()}`);
+          // add a small permanent tooltip badge with the sequence number
+          try {
+            m.bindTooltip(String(index + 1), { permanent: true, direction: 'center', className: 'map-seq-badge' });
+          } catch (e) { /* ignore */ }
         });
 
         // Connect points with line and fit bounds
@@ -571,7 +534,8 @@ const AnimaisPage: React.FC = () => {
   // recria mapa quando modal abre, animal muda, lista filtrada muda ou troca para a tab 'mapa'
   useEffect(() => {
     if (showLocationModal && selectedAnimal && modalTab === 'mapa') {
-      createMap();
+      const t = setTimeout(() => createMap(), 220);
+      return () => clearTimeout(t);
     }
   }, [showLocationModal, selectedAnimal, filteredLocations, modalTab]);
 
@@ -710,246 +674,402 @@ const AnimaisPage: React.FC = () => {
     }
   }, [showPlantacaoModal, plantacaoModalTab, selectedPlantacao]);
 
-  return (
-    <IonPage style={{ backgroundColor: "#FFF9E5", color: "#004030" }}>
-      {/* CABEÇALHO */}
-      <IonHeader translucent={false}>
-        <IonToolbar
-          style={
-            {
-              ["--background" as any]: "#FFF9E5",
-              ["--color" as any]: "#004030",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "6px 12px",
-            } as React.CSSProperties
-          }
-        >
-          <img
-            src={logo}
-            alt="perfil"
-            style={{
-              borderRadius: "50%",
-              width: 40,
-              height: 40,
-              border: "2px solid #DCD0A8",
-              objectFit: "cover",
-            }}
-          />
+  // helper: update map markers/polygon for add map
+  const updateAddMap = () => {
+    try {
+      const map = mapAddInstanceRef.current;
+      if (!map) return;
+      // remove old markers and non-tile layers
+      addMarkersRef.current.forEach(m => { try { map.removeLayer(m); } catch(e){} });
+      addMarkersRef.current = [];
+      // remove previously added overlay layers (if stored)
+      try {
+        const prev = (map as any)._agro_overlayLayers as L.Layer[] | undefined;
+        if (Array.isArray(prev)) {
+          prev.forEach(l => { try { map.removeLayer(l); } catch {} });
+        }
+      } catch (e) {}
 
+      map.eachLayer(layer => {
+        try {
+          // keep tile layers (base map). Only remove other overlay layers (markers, polylines, polygons)
+          if (layer instanceof L.TileLayer) return;
+        } catch (e) {
+          // fallback: if instanceof check fails in some envs, try to detect tile layers by _url
+          if ((layer as any)?._url) return;
+        }
+        try { map.removeLayer(layer); } catch (e) {}
+      });
+
+      const coords = addPoints.map(p => [p[0], p[1]] as L.LatLngExpression);
+      coords.forEach((c, i) => {
+        const m = L.marker(c).addTo(map);
+        // add small permanent tooltip badge showing index
+        try { m.bindTooltip(String(i+1), { permanent: true, direction: 'center', className: 'map-seq-badge' }); } catch (e) {}
+        addMarkersRef.current.push(m);
+      });
+
+      // remove any previous overlay lines/polygons (tile layers preserved above)
+      // We'll draw connections between each point and its two nearest neighbors
+      // First, compute simple nearest neighbors (O(n^2) is fine for small n)
+      const overlayLayers: L.Layer[] = [];
+      if (coords.length === 1) {
+        map.setView(coords[0], 16);
+      } else if (coords.length > 1) {
+        // compute NN for each point
+        const pts = coords.map(c => ({ lat: Number((c as any)[0]), lng: Number((c as any)[1]) }));
+
+        // helper distance^2
+        const dist2 = (a: {lat:number,lng:number}, b: {lat:number,lng:number}) => {
+          const dx = a.lat - b.lat; const dy = a.lng - b.lng; return dx*dx + dy*dy;
+        };
+
+        for (let i = 0; i < pts.length; i++) {
+          const dists: Array<{ idx: number; d: number }> = [];
+          for (let j = 0; j < pts.length; j++) {
+            if (i === j) continue;
+            dists.push({ idx: j, d: dist2(pts[i], pts[j]) });
+          }
+          dists.sort((a,b) => a.d - b.d);
+          const nearest = dists.slice(0, 2).map(x => x.idx);
+          // draw lines to nearest neighbors
+          nearest.forEach(nidx => {
+            const line = L.polyline([[pts[i].lat, pts[i].lng], [pts[nidx].lat, pts[nidx].lng]], { color: '#4A9782', weight: 2, opacity: 0.9 }).addTo(map);
+            overlayLayers.push(line);
+          });
+        }
+
+        // if 3 or more points, optionally draw a faint polygon to indicate area
+        if (coords.length >= 3) {
+          const poly = L.polygon(coords, { color: '#4A9782', weight: 1, fillOpacity: 0.04, opacity: 0.5 }).addTo(map);
+          overlayLayers.push(poly);
+        }
+
+        // fit bounds to all points
+        map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] });
+      }
+
+      // store overlayLayers in map (attach to map object) so we can remove them next update
+      try {
+        (map as any)._agro_overlayLayers = overlayLayers;
+      } catch (e) { /* ignore */ }
+    } catch (err) {
+      console.error('updateAddMap error', err);
+    }
+  };
+
+  // init map for adding points
+  const initAddMap = () => {
+    try {
+      if (!mapAddRef.current) return;
+      if (mapAddInstanceRef.current) {
+        try { mapAddInstanceRef.current.remove(); } catch { }
+        mapAddInstanceRef.current = null;
+        addMarkersRef.current = [];
+      }
+      mapAddRef.current.innerHTML = '';
+      const map = L.map(mapAddRef.current, { center: [0,0], zoom: 2, zoomControl: true });
+      mapAddInstanceRef.current = map;
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+      // helper: point-in-polygon (ray-casting)
+      const pointInPolygon = (x: number, y: number, poly: [number, number][]) => {
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+          const xi = poly[i][0], yi = poly[i][1];
+          const xj = poly[j][0], yj = poly[j][1];
+          const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 0.0) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      };
+
+      const degDistance2 = (a: [number, number], b: [number, number]) => {
+        const dx = a[0] - b[0];
+        const dy = a[1] - b[1];
+        return dx*dx + dy*dy;
+      };
+
+      map.on('click', (e: any) => {
+        const lat = Number(e.latlng.lat);
+        const lng = Number(e.latlng.lng);
+
+        // proximity threshold in degrees ~ approx (0.0001 deg ~ 11m)
+        const proximityThresholdDeg = 0.0001;
+
+        const candidate: [number, number] = [lat, lng];
+
+        // if close to existing point, ignore
+        for (const p of addPoints) {
+          if (degDistance2(p, candidate) <= proximityThresholdDeg * proximityThresholdDeg) {
+            // ignore silent
+            return;
+          }
+        }
+
+        // if there are >=3 points and candidate is strictly inside polygon, ignore
+        if (addPoints.length >= 3) {
+          const poly = addPoints.slice();
+          if (pointInPolygon(lat, lng, poly as [number, number][])) {
+            return;
+          }
+        }
+
+        setAddPoints(prev => {
+          const next = [...prev, candidate as [number, number]];
+          // sincroniza para enviar
+          setNewPlantacao(np => ({ ...np, pontosx: next.map(p => p[0]), pontosy: next.map(p => p[1]) }));
+          return next;
+        });
+      });
+
+      updateAddMap();
+    } catch (err) {
+      console.error('initAddMap error', err);
+    }
+  };
+
+  useEffect(() => {
+    updateAddMap();
+    // also sync newPlantacao in case addPoints changed externally
+    setNewPlantacao(np => ({ ...np, pontosx: addPoints.map(p => p[0]), pontosy: addPoints.map(p => p[1]) }));
+  }, [addPoints]);
+
+  // init/cleanup when opening/closing the add modal for plantacao
+  useEffect(() => {
+    if (showModal && segment === 'plantacoes') {
+      setTimeout(() => initAddMap(), 120);
+    }
+    if (!showModal && mapAddInstanceRef.current) {
+      try { mapAddInstanceRef.current.remove(); } catch (e) {}
+      mapAddInstanceRef.current = null;
+      addMarkersRef.current = [];
+      setAddPoints([]);
+    }
+  }, [showModal, segment]);
+
+  const clearAddPoints = () => {
+    setAddPoints([]);
+    setNewPlantacao(np => ({ ...np, pontosx: [], pontosy: [] }));
+    if (mapAddInstanceRef.current) {
+      mapAddInstanceRef.current.eachLayer(layer => {
+        try {
+          if (layer instanceof L.TileLayer) return;
+        } catch (e) {
+          if ((layer as any)?._url) return;
+        }
+        try { mapAddInstanceRef.current!.removeLayer(layer); } catch {}
+      });
+    }
+    addMarkersRef.current = [];
+  };
+
+  const undoLastPoint = () => {
+    setAddPoints(prev => {
+      const next = prev.slice(0, -1);
+      setNewPlantacao(np => ({ ...np, pontosx: next.map(p => p[0]), pontosy: next.map(p => p[1]) }));
+      return next;
+    });
+  };
+
+  const pasteCoordsFromText = (text: string) => {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const parsed: [number, number][] = [];
+    for (const ln of lines) {
+      const sep = ln.includes(',') ? ',' : (ln.includes(';') ? ';' : ' ');
+      const parts = ln.split(sep).map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        const a = Number(parts[0]);
+        const b = Number(parts[1]);
+        if (!isNaN(a) && !isNaN(b)) parsed.push([a, b]);
+      }
+    }
+    if (parsed.length) {
+      setAddPoints(parsed);
+      setNewPlantacao(np => ({ ...np, pontosx: parsed.map(p => p[0]), pontosy: parsed.map(p => p[1]) }));
+    }
+  };
+
+  return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar style={{ '--background': '#004030', '--color': '#FFF' }}>
+          <IonButtons slot="start">
+            <IonButton routerLink="/home">
+              <IonIcon slot="icon-only" name="arrow-back" />
+            </IonButton>
+          </IonButtons>
+          <IonTitle>Animais e Plantações</IonTitle>
           <IonButtons slot="end">
-            <IonButton fill="clear" href="/settings" >
-              <IonIcon
-                icon={settingsOutline}
-                style={{ color: "#004030", fontSize: "24px" }}
-              />
+            <IonButton routerLink="/settings">
+              <IonIcon slot="icon-only" name="settings-outline" />
             </IonButton>
           </IonButtons>
         </IonToolbar>
-
-        {/* ABAS */}
-        <div
-          style={{
-            backgroundColor: "#FFF9E5",
-            display: "flex",
-            justifyContent: "center",
-            padding: "0 12px 8px",
-          }}
-        >
-          <IonSegment
-            value={segment}
-            onIonChange={(e: any) => setSegment(e.detail.value)}
-            style={{
-              backgroundColor: "#4A9782",
-              borderRadius: "9999px",
-              width: "100%",
-              maxWidth: "380px",
-              height: "40px",
-            }}
-          >
-            <IonSegmentButton
-              value="animais"
-              style={{
-                "--color-checked": "#FFF9E5",
-                "--color": "#FFF9E5aa",
-                "--indicator-color": "transparent",
-                borderRadius: "9999px",
-              }}
-            >
-              <IonLabel>Animais</IonLabel>
-            </IonSegmentButton>
-
-            <IonSegmentButton
-              value="plantacoes"
-              style={{
-                "--color-checked": "#FFF9E5",
-                "--color": "#FFF9E5aa",
-                "--indicator-color": "transparent",
-                borderRadius: "9999px",
-              }}
-            >
-              <IonLabel>Plantações</IonLabel>
-            </IonSegmentButton>
-          </IonSegment>
-        </div>
       </IonHeader>
 
-      {/* CONTEÚDO */}
-      <IonContent
-        style={{
-          backgroundColor: "#FFF9E5",
-          padding: "16px",
-        }}
-      >
-        {segment === "animais" ? (
-          <>
-            {loading && <p style={{ color: "#004030" }}>A carregar animais...</p>}
-            {error && <p style={{ color: "crimson" }}>{error}</p>}
-            {!loading && animais.length === 0 && !error && (
-              <p style={{ color: "#004030b0" }}>Nenhum animal encontrado.</p>
+      <IonContent>
+        <IonSegment value={segment} onIonChange={(e: any) => {
+          const val = e?.detail?.value;
+          setSegment(typeof val === 'string' ? val : String(val ?? 'animais'));
+        }}>
+          <IonSegmentButton value="animais">
+            <IonLabel>Animais</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="plantacoes">
+            <IonLabel>Plantações</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
+
+        <IonRefresher slot="fixed" onIonRefresh={fetchAnimais}>
+          <IonRefresherContent
+            pullingIcon={null}
+            refreshingSpinner="bubbles"
+            refreshingText="Atualizando..."
+          />
+        </IonRefresher>
+
+        <IonGrid>
+          <IonRow>
+            {segment === "animais" && animais.length === 0 && (
+              <IonCol>
+                <div style={{ padding: 16, textAlign: 'center', color: '#666' }}>
+                  <IonIcon name="paw-outline" style={{ fontSize: '48px', marginBottom: '8px', color: '#004030' }} />
+                  <p style={{ margin: 0, fontSize: '16px' }}>
+                    Nenhum animal encontrado.
+                  </p>
+                </div>
+              </IonCol>
             )}
 
-            {animais.map((item, i) => (
-              <IonCard
-                key={item._id ?? item.id ?? i}
-                onClick={() => handleAnimalClick(item)}
-                style={{
-                  backgroundColor: "#DCD0A8",
-                  borderRadius: "16px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  marginBottom: "12px",
-                  cursor: "pointer"
-                }}
-              >
-                <IonItem
-                  lines="none"
+            {segment === "plantacoes" && plantacoes.length === 0 && (
+              <IonCol>
+                <div style={{ padding: 16, textAlign: 'center', color: '#666' }}>
+                  <IonIcon name="leaf-outline" style={{ fontSize: '48px', marginBottom: '8px', color: '#004030' }} />
+                  <p style={{ margin: 0, fontSize: '16px' }}>
+                    Nenhuma plantação encontrada.
+                  </p>
+                </div>
+              </IonCol>
+            )}
+
+            {segment === "animais" ? animais.map((item) => (
+              <IonCol size="6" key={item._id}>
+                <IonCard
+                  button
+                  onClick={() => handleAnimalClick(item)}
                   style={{
-                    "--background": "#DCD0A8",
-                    borderRadius: "16px",
-                    padding: "8px 4px",
+                    margin: "8px",
+                    background: "#D1E8E2",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    position: "relative",
+                    paddingBottom: "56.25%" // 16:9 aspect ratio
                   }}
                 >
-                  <IonAvatar slot="start">
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "50%",
-                        backgroundColor: "#4A9782",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <IonIcon
-                        icon={pawOutline}
-                        style={{ color: "#FFF9E5", fontSize: "20px" }}
-                      />
-                    </div>
-                  </IonAvatar>
-
-                  <IonLabel>
-                    <h2
-                      style={{
-                        fontWeight: 600,
-                        color: "#004030",
-                        fontSize: "15px",
-                        marginBottom: "2px",
-                      }}
-                    >
+                  <div style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: `url(${logo}) no-repeat center center`,
+                    backgroundSize: "cover",
+                    opacity: 0.1,
+                    zIndex: 1
+                  }} />
+                  <div style={{ position: "relative", zIndex: 2, padding: "16px" }}>
+                    <h2 style={{
+                      margin: 0,
+                      fontSize: "18px",
+                      color: "#004030",
+                      fontWeight: "bold"
+                    }}>
                       {item.nome}
                     </h2>
-                    <p style={{ color: "#004030b0", fontSize: "13px" }}>
-                      {item.raca ?? "—"}  {/* Mostra raça ou traço se não houver */}
-                    </p>
-                  </IonLabel>
-
-                  <IonNote
-                    slot="end"
-                    style={{
-                      color: "#004030",
+                    <p style={{
+                      margin: "4px 0",
                       fontSize: "14px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {item.idade} anos
-                  </IonNote>
-                </IonItem>
-              </IonCard>
-            ))}
-          </>
-        ) : (
-          <>
-            {loading && <p style={{ color: "#004030" }}>A carregar plantações...</p>}
-            {error && <p style={{ color: "crimson" }}>{error}</p>}
-            {!loading && plantacoes.length === 0 && !error && (
-              <p style={{ color: "#004030b0" }}>Nenhuma plantação encontrada.</p>
-            )}
-
-            {plantacoes.map((item, i) => (
-              <IonCard
-                key={item._id ?? item.id ?? i}
-                onClick={() => handlePlantacaoClick(item)}
-                style={{
-                  backgroundColor: "#DCD0A8",
-                  borderRadius: "16px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                  marginBottom: "12px",
-                  cursor: "pointer"
-                }}
-              >
-                <IonItem
-                  lines="none"
+                      color: "#004030",
+                      fontWeight: "medium"
+                    }}>
+                      {`Raça: ${item.raca} | Idade: ${item.idade} anos`}
+                    </p>
+                    <IonNote style={{ fontSize: "12px", color: "#999" }}>
+                      {`Última localização: ${item.localizacaoX}, ${item.localizacaoY}`}
+                    </IonNote>
+                  </div>
+                </IonCard>
+              </IonCol>
+            )) : plantacoes.map((item) => (
+              <IonCol size="6" key={item._id}>
+                <IonCard
+                  button
+                  onClick={() => handlePlantacaoClick(item)}
                   style={{
-                    "--background": '#DCD0A8',
-                    borderRadius: "16px",
-                    padding: "8px 4px",
+                    margin: "8px",
+                    background: "#F9EBD7",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    position: "relative",
+                    paddingBottom: "56.25%" // 16:9 aspect ratio
                   }}
                 >
-                  <IonAvatar slot="start">
-                    <div
-                      style={{
-                        width: "42px",
-                        height: "42px",
-                        borderRadius: "50%",
-                        backgroundColor: "#4A9782",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <IonIcon
-                        icon={leafOutline}
-                        style={{ color: "#FFF9E5", fontSize: "20px" }}
-                      />
-                    </div>
-                  </IonAvatar>
-
-                  <IonLabel>
-                    <h2
-                      style={{
-                        fontWeight: 600,
-                        color: "#004030",
-                        fontSize: "15px",
-                        marginBottom: "2px",
-                      }}
-                    >
+                  <div style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: `url(${logo}) no-repeat center center`,
+                    backgroundSize: "cover",
+                    opacity: 0.1,
+                    zIndex: 1
+                  }} />
+                  <div style={{ position: "relative", zIndex: 2, padding: "16px" }}>
+                    <h2 style={{
+                      margin: 0,
+                      fontSize: "18px",
+                      color: "#7D5B29",
+                      fontWeight: "bold"
+                    }}>
                       {item.planta}
                     </h2>
-                    <p style={{ color: "#004030b0", fontSize: "13px" }}>
-                      Plantação
+                    <p style={{
+                      margin: "4px 0",
+                      fontSize: "14px",
+                      color: "#7D5B29",
+                      fontWeight: "medium"
+                    }}>
+                      {`Planta: ${item.planta}`}
                     </p>
-                  </IonLabel>
-                </IonItem>
-              </IonCard>
+                    <IonNote style={{ fontSize: "12px", color: "#999" }}>
+                      {`Criado em: ${new Date(item.createdAt || '').toLocaleDateString()}`}
+                    </IonNote>
+                  </div>
+                </IonCard>
+              </IonCol>
             ))}
-          </>
-        )}
+          </IonRow>
+        </IonGrid>
       </IonContent>
 
       {/* Add Modal */}
-      <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+      <IonModal
+        isOpen={showModal}
+        onDidDismiss={() => {
+          // fechar modal e limpar estado do mapa de criação
+          setShowModal(false);
+          setAddPoints([]);
+
+          setNewPlantacao({});
+          if (mapAddInstanceRef.current) {
+            try { mapAddInstanceRef.current.remove(); } catch (e) { /* ignore */ }
+            mapAddInstanceRef.current = null;
+            addMarkersRef.current = [];
+          }
+        }}
+      >
         <IonHeader>
           <IonToolbar style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
             <IonTitle>{segment === 'animais' ? 'Novo Animal' : 'Nova Plantação'}</IonTitle>
@@ -1019,11 +1139,9 @@ const AnimaisPage: React.FC = () => {
                     </IonItem>
                   </IonList>
                 ) : (
+                  // plantacao form with map editor
                   <IonList style={{ background: '#FFF9E5' }}>
-                    <IonItem style={{
-                      '--background': '#FFF9E5',
-                      '--color': '#004030',
-                    }}>
+                    <IonItem>
                       <IonInput
                         label="Nome da Planta"
                         labelPlacement="stacked"
@@ -1031,12 +1149,43 @@ const AnimaisPage: React.FC = () => {
                         value={newPlantacao.planta}
                         debounce={0}
                         onIonInput={e => setNewPlantacao({ ...newPlantacao, planta: e.detail.value! })}
-                        style={{
-                          '--color': '#004030',
-                          '--placeholder-color': '#004030',
-                        }}
                       />
                     </IonItem>
+
+                    <div style={{ padding: 12 }}>
+                      <div style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
+                        <IonButton size="small" onClick={undoLastPoint}>Desfazer</IonButton>
+                        <IonButton size="small" color="medium" onClick={clearAddPoints}>Limpar</IonButton>
+                        <div style={{ flex: 1, textAlign: 'right', alignSelf: 'center', color: '#004030' }}>
+                          Pontos: {addPoints.length}
+                        </div>
+                      </div>
+
+                      <div ref={mapAddRef} id="map-add-container" style={{ width: '100%', minHeight: 300, borderRadius: 8, overflow: 'hidden' }} />
+
+                      <div style={{ marginTop: 8 }}>
+                        <IonLabel>Editor de pontos — clique no mapa para adicionar pins</IonLabel>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            {/* visual helper (the actual map is the element above bound to mapAddRef) */}
+                            <div style={{ width: '100%', minHeight: 120, borderRadius: 8, overflow: 'hidden' }} />
+                            <small style={{ color: '#666' }}>Toque/ clique no mapa para colocar pontos. Use "Desfazer" para remover o último e "Limpar" para reiniciar.</small>
+                          </div>
+                          <div style={{ width: 160, maxHeight: 300, overflowY: 'auto', padding: 8, background: '#FFF', borderRadius: 8 }}>
+                            <strong style={{ fontSize: 12, color: '#004030' }}>Pontos colocados</strong>
+                            {addPoints.length === 0 ? (
+                              <p style={{ fontSize: 12, color: '#666' }}>Nenhum ponto</p>
+                            ) : (
+                              <ol style={{ paddingLeft: 16, margin: '8px 0' }}>
+                                {addPoints.map((p, i) => (
+                                  <li key={i} style={{ fontSize: 12, color: '#004030' }}>{p[0].toFixed(6)}, {p[1].toFixed(6)}</li>
+                                ))}
+                              </ol>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </IonList>
                 )}
               </IonCol>
@@ -1044,15 +1193,7 @@ const AnimaisPage: React.FC = () => {
 
             <IonRow>
               <IonCol>
-                <IonButton
-                  expand="block"
-                  onClick={handleSubmit}
-                  style={{
-                    '--background': '#004030',
-                    '--background-activated': '#003020',
-                    marginTop: '20px'
-                  }}
-                >
+                <IonButton expand="block" onClick={handleSubmit} style={{ '--background': '#004030', marginTop: '20px' }}>
                   Salvar
                 </IonButton>
               </IonCol>
@@ -1092,19 +1233,17 @@ const AnimaisPage: React.FC = () => {
           </IonToolbar>
           {/* Tabs (segment) */}
           <IonToolbar style={{ '--background': '#FFF9E5', padding: '6px 12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-              <IonSegment value={modalTab} onIonChange={(e: any) => setModalTab(e.detail.value)}>
-                <IonSegmentButton value="info">
-                  <IonLabel>Info</IonLabel>
-                </IonSegmentButton>
-                <IonSegmentButton value="mapa">
-                  <IonLabel>Mapa</IonLabel>
-                </IonSegmentButton>
-                <IonSegmentButton value="remedios">
-                  <IonLabel>Remédios</IonLabel>
-                </IonSegmentButton>
-              </IonSegment>
-            </div>
+            <IonSegment value={modalTab} onIonChange={(e: any) => setModalTab(e.detail.value)}>
+              <IonSegmentButton value="info">
+                <IonLabel>Info</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="mapa">
+                <IonLabel>Mapa</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="remedios">
+                <IonLabel>Remédios</IonLabel>
+              </IonSegmentButton>
+            </IonSegment>
           </IonToolbar>
         </IonHeader>
 
@@ -1180,7 +1319,7 @@ const AnimaisPage: React.FC = () => {
               </div>
 
               {/* Mapa */}
-              <div id="map-container" ref={mapRef} style={{ width: "100%", height: "100%" }} />
+              <div id="map-container" ref={mapRef} style={{ width: "100%", height: "100%", minHeight: 320 }} />
             </div>
           )}
 
@@ -1372,21 +1511,26 @@ const AnimaisPage: React.FC = () => {
 
       {/* Floating Action Button */}
       <IonButton
-        onClick={() => setShowModal(true)}
-        style={{
-          position: 'fixed',
-          bottom: '80px', // above navbar
-          right: '20px',  // right side
-          '--border-radius': '50%',
-          '--padding-start': '0',
-          '--padding-end': '0',
-          width: '56px',
-          height: '56px',
-          '--background': '#004030',
-          '--background-activated': '#3A8772',
-          zIndex: 1000,
+        onClick={() => {
+          // abrir diretamente o formulário de Nova Plantação com o mapa
+          setSegment('plantacoes');
+          // aguardar um tick para que o segmento seja aplicado e o conteúdo do modal renderize
+          setTimeout(() => setShowModal(true), 40);
         }}
-      >
+         style={{
+           position: 'fixed',
+           bottom: '80px', // above navbar
+           right: '20px',  // right side
+           '--border-radius': '50%',
+           '--padding-start': '0',
+           '--padding-end': '0',
+           width: '56px',
+           height: '56px',
+           '--background': '#004030',
+           '--background-activated': '#3A8772',
+           zIndex: 1000,
+         }}
+       >
         <IonIcon
           icon={addOutline}
           style={{
@@ -1488,6 +1632,24 @@ const AnimaisPage: React.FC = () => {
 
           .leaflet-popup-tip {
             background-color: #fff;
+          }
+          /* Ensure add/map containers have explicit min-heights so Leaflet can initialize */
+          #map-add-container { min-height: 300px; height: 300px; }
+          #map-container-plant { min-height: 320px; height: 100%; }
+          /* When modal places map with absolute positioning, ensure ion-content occupies full height */
+          ion-modal .modal-wrapper { height: 100%; }
+          .map-seq-badge {
+            background: #004030 !important;
+            color: #fff !important;
+            border-radius: 50% !important;
+            width: 20px !important;
+            height: 20px !important;
+            line-height: 20px !important;
+            text-align: center !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+            border: 2px solid #fff !important;
           }
         `}
       </style>
