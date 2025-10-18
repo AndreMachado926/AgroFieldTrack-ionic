@@ -533,6 +533,7 @@ const AnimaisPage: React.FC = () => {
           style={{
             fontSize: '24px',
             marginInline: 'auto',
+            color: '#FFF9E5',
           }}
         />
       </IonButton>

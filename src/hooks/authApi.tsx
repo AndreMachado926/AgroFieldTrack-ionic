@@ -17,7 +17,7 @@ export interface UserDatabase {
   token: string;
 }
 
-export interface UserC{
+export interface UserC {
   username: string;
   password: string;
   profilePic: string;
@@ -37,11 +37,11 @@ export const authApi = (user: UserDatabase | null, Login: (userData: any) => voi
       const response = await axios.post(`${url}/login`, user, { withCredentials: true });
       Login(response.data);
 
-      return {success: true, data: response.data};
+      return { success: true, data: response.data };
     } catch (error: any) {
       const msg = error.response?.data || error.message || "Erro desconhecido";
       return { success: false, error: msg };
-  }
+    }
   };
 
   const recover = async (email: string): Promise<any> => {
@@ -55,7 +55,7 @@ export const authApi = (user: UserDatabase | null, Login: (userData: any) => voi
         }
       );
 
-      return {success: true, data: response.data};
+      return { success: true, data: response.data };
     } catch (error: any) {
       const msg = error.message || "Erro desconhecido";
       return { success: false, error: msg };
@@ -89,7 +89,7 @@ export const authApi = (user: UserDatabase | null, Login: (userData: any) => voi
     try {
       const response = await axios.post(`${url}/register`, user);
       return response.status === 201;
-      
+
     } catch (error: any) {
       console.error("Erro ao registrar", error?.response?.data || error.message);
       return false;
@@ -99,23 +99,23 @@ export const authApi = (user: UserDatabase | null, Login: (userData: any) => voi
   const getUser = async (): Promise<UserC | null> => {
     if (!user) return null;
     try {
-        const response = await axios.post<UserC>(`${url}/getuser`, { userId: user._id }, {
-            headers: {
-                Authorization: `Bearer ${user.token}`,
-            },
-        });
-        
-        return response.data;
+      const response = await axios.post<UserC>(`${url}/getuser`, { userId: user._id }, {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
+
+      return response.data;
     } catch (error) {
-        console.error("Erro ao obter usuário", error);
-        return null;
+      console.error("Erro ao obter usuário", error);
+      return null;
     }
   };
 
   const getCurrentUser = async (): Promise<any> => {
     if (!user) return null;
     try {
-      const response = await axios.post(`${url}/getuser`, {userId: user._id }, {
+      const response = await axios.post(`${url}/getuser`, { userId: user._id }, {
         headers: {
           Authorization: `Bearer ${user.token}`,
         },
@@ -127,7 +127,7 @@ export const authApi = (user: UserDatabase | null, Login: (userData: any) => voi
     }
   };
 
-  
+
 
   return { login, recover, logout, isAuthenticated, signup, getUser, getCurrentUser };
 };

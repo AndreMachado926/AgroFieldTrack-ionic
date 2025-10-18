@@ -1,0 +1,231 @@
+.detalhes-page .page-background {
+    --background: #FFF9E5 !important;
+}
+
+.detalhes-page .custom-toolbar {
+    --background: #004030 !important;
+    --color: #ffffff !important;
+}
+
+.detalhes-page .card-container {
+    padding: 12px;
+    margin: 12px 8px;
+}
+
+
+
+.detalhes-page .card-header {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #004030;
+}
+
+.detalhes-page .card-content {
+    margin-top: 4px;
+}
+
+.detalhes-page .card-tags {
+    margin-top: 6px;
+}
+
+.detalhes-page .card-button {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.detalhes-page .card-button ion-button {
+    --background: #004030;
+    --color: white;
+    --border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.detalhes-page .card-image,
+.detalhes-page ion-img {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.detalhes-page .ion-accordion-group {
+    margin-top: 20px;
+}
+
+.detalhes-page ion-accordion ion-item[slot="header"] {
+    --color: #004030;
+    font-weight: 500;
+}
+
+.detalhes-page .comment-container {
+    margin-top: 8px;
+    padding: 8px 0;
+    border-top: 1px solid #eee;
+}
+
+.detalhes-page .comment-container ion-button {
+    --padding-start: 0;
+    --padding-end: 0;
+    margin-left: 4px;
+}
+
+.detalhes-page .tag-container {
+    text-align: left;
+}
+
+.detalhes-page .tag-retangulo {
+    display: inline-block;
+    background-color: #004030;
+    margin-left: 0;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.detalhes-page .tags-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.detalhes-page .tags-grid ion-chip {
+    font-size: 11px;
+    height: 20px;
+    padding: 0 6px;
+    margin: 2px 4px 2px 0;
+    border-radius: 8px;
+    border: 1.5px solid #004030;
+    color: #004030;
+}
+.detalhes-page .comment-box {
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #ccc;
+}
+
+.detalhes-page .comentario-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detalhes-page .linha-comentario {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.detalhes-page .comentario-msg {
+    margin: 0;
+    font-size: 14px;
+}
+
+.detalhes-page .botoes-comentario {
+    display: flex;
+    gap: 6px;
+}
+
+.detalhes-page .comentario-autor {
+    display: block;
+    color: #004030;
+}
+
+.detalhes-page .data {
+    color: #999;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.detalhes-page .data2 {
+    color: #999;
+    font-size: 0.68rem;
+    font-style: italic;
+    font-weight: normal;
+}
+
+.detalhes-page .comentario-input {
+    --color: #000;
+    --background: #FFF9E5 !important;
+}
+
+.detalhes-page .tags-conteudo {
+    padding-top: 4px;
+    margin-top: 0px;
+}
+
+.image-modal-content {
+    --background: transparent !important;
+}
+
+.detalhes-page ion-modal {
+    --background: transparent !important;
+}
+
+.detalhes-page ion-content {
+    --background: transparent !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+.custom-modal {
+    background-color: #d6e9ff;
+    padding: 16px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.custom-item {
+    background: transparent;
+    --background: transparent;
+    --color: #000;
+}
+
+.btn-adicionar-comentario {
+    --color: #004030 !important;       /* cor do texto e ícone */
+    --border-color: #004030 !important; /* cor do contorno */
+    --background: transparent !important; /* fundo transparente */
+}
+
+.btn-adicionar-comentario:hover {
+    --background: rgba(0, 64, 48, 0.1) !important; /* efeito hover */
+}
+
+.custom-input {
+    --background: white;
+    --color: black;
+    --placeholder-color: #666;
+    --highlight-color-focused: #004030;
+    --padding-start: 12px;
+    font-size: 15px;
+    border-radius: 8px;
+}
+
+input[type="file"] {
+    background-color: white;
+    color: black;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 8px;
+    width: 100%;
+}
+
+.custom-button {
+    margin-top: 20px;
+    background-color: #3B9C9B;
+    color: black;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.custom-modal2 {
+    --background: transparent !important;
+}
