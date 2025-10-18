@@ -6,8 +6,12 @@ import Home from './pages/Home';
 
 import Login from './pages/login/login';
 import Signup from './pages/login/signup';
+<<<<<<< Updated upstream
 import Verification from './pages/login/verification';
 
+=======
+import lista from './pages/lista/listas';
+>>>>>>> Stashed changes
 import { AuthProvider } from './AuthProvider';
 
 
@@ -49,14 +53,15 @@ const InnerApp: React.FC = () => {
       <IonReactRouter>
         <IonRouterOutlet>
           <Switch>
-          
+
 
             <Route exact path="/" component={Login} />
             <Route exact path="/signup" component={Signup} />
             <Route exact path="/verification" component={Verification} />
             <Route exact path="/home" component={Home} />
 
-            
+            <Route exact path="/lista" component={lista} />
+
           </Switch>
         </IonRouterOutlet>
       </IonReactRouter>

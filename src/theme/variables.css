@@ -1,2 +1,14 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
+
+ion-toolbar, ion-header, ion-footer, ion-tab-bar {
+  --background: #FFF9E5;
+  --color: #004030;
+}
+
+/* separadamente, se quiser tabbar mais bege */
+ion-tab-bar {
+  --background: #DCD0A8;
+  --color: #004030;
+  --color-selected: #004030;
+}

@@ -1,0 +1,13 @@
+/* === Desativa modo escuro === */
+:root {
+  color-scheme: light;
+  --ion-color-step-50: #ffffff;
+  --ion-background-color: #FFF9E5 !important;
+  --ion-text-color: #004030 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light; /* ignora dark mode do sistema */
+  }
+}
