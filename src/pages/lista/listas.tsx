@@ -72,11 +72,15 @@ type Plantacao = {
   _id?: string;
   id?: string;
   planta: string;
-  localizacaoX: number;
-  localizacaoY: number;
-  dono_id: string;
-  createdAt?: string;
-  updatedAt?: string;
+  // pontos do polígono: arrays de latitude (pontosx) e longitude (pontosy)
+  pontosx?: number[] | null;
+  pontosy?: number[] | null;
+  // localização pontual (legacy) — deixamos explícito que pode ser null
+  localizacaoX?: number | null;
+  localizacaoY?: number | null;
+  dono_id?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 };
 
 // Add type for Remedio (if not already defined)
@@ -435,6 +439,7 @@ const AnimaisPage: React.FC = () => {
     try {
       if (!mapRefPlant.current || !selectedPlantacao) return;
 
+      // remove instância anterior se existir
       if (mapInstanceRefPlant.current) {
         try { mapInstanceRefPlant.current.remove(); } catch (e) { /* ignore */ }
         mapInstanceRefPlant.current = null;
@@ -442,7 +447,7 @@ const AnimaisPage: React.FC = () => {
       mapRefPlant.current.innerHTML = '';
 
       const map = L.map(mapRefPlant.current, {
-        center: [selectedPlantacao.localizacaoX || 0, selectedPlantacao.localizacaoY || 0],
+        center: [0, 0],
         zoom: 13,
         attributionControl: true,
         zoomControl: true
@@ -454,22 +459,81 @@ const AnimaisPage: React.FC = () => {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      const iconPlant = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background:#4A9782;color:#fff;padding:6px 8px;border-radius:6px;font-weight:600">Plantação</div>`,
-        iconSize: [80, 30],
-        iconAnchor: [40, 15]
-      });
+      // Construir coordenadas a partir de pontosx/pontosy
+      const px = selectedPlantacao.pontosx || [];
+      const py = selectedPlantacao.pontosy || [];
+      const coords: L.LatLngExpression[] = [];
 
-      const marker = L.marker([selectedPlantacao.localizacaoX || 0, selectedPlantacao.localizacaoY || 0], { icon: iconPlant })
-        .addTo(map)
-        .bindPopup(`${selectedPlantacao.planta}`);
+      if (Array.isArray(px) && Array.isArray(py) && px.length && py.length) {
+        const len = Math.min(px.length, py.length);
+        for (let i = 0; i < len; i++) {
+          const lat = Number(px[i]);
+          const lng = Number(py[i]);
+          if (!isNaN(lat) && !isNaN(lng)) coords.push([lat, lng]);
+        }
+      }
 
-      map.setView([selectedPlantacao.localizacaoX || 0, selectedPlantacao.localizacaoY || 0], 13);
+      // Se houver coords suficientes, desenha polígono e ajusta bounds
+      if (coords.length >= 3) {
+        const polygon = L.polygon(coords, {
+          color: '#4A9782',
+          weight: 3,
+          opacity: 0.8,
+          fillColor: '#4A9782',
+          fillOpacity: 0.15
+        }).addTo(map);
+        map.fitBounds(polygon.getBounds(), { padding: [40, 40] });
+      } else if (coords.length > 0) {
+        // se apenas um ou dois pontos -> marca e centra
+        const marker = L.marker(coords[0], {
+          icon: L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background:#4A9782;color:#fff;padding:6px 8px;border-radius:6px;font-weight:600">${selectedPlantacao.planta}</div>`,
+            iconSize: [80, 30],
+            iconAnchor: [40, 15]
+          })
+        }).addTo(map);
+        map.setView(coords[0] as L.LatLngExpression, 13);
+      } else if (typeof selectedPlantacao.localizacaoX === 'number' && typeof selectedPlantacao.localizacaoY === 'number') {
+        // fallback legacy localizacaoX/Y
+        const pt: L.LatLngExpression = [selectedPlantacao.localizacaoX, selectedPlantacao.localizacaoY];
+        L.marker(pt, {
+          icon: L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background:#4A9782;color:#fff;padding:6px 8px;border-radius:6px;font-weight:600">${selectedPlantacao.planta}</div>`,
+            iconSize: [80, 30],
+            iconAnchor: [40, 15]
+          })
+        }).addTo(map);
+        map.setView(pt, 13);
+      } else {
+        // nada para mostrar
+        map.setView([0, 0], 2);
+      }
+
       setTimeout(() => map.invalidateSize(), 200);
     } catch (err) {
       console.error('createPlantacaoMap error', err);
     }
+  };
+
+  // helper para formatar coordenadas
+  const formatCoord = (v?: number | null) => (typeof v === 'number' ? v.toFixed(6) : '—');
+
+  // helper para centroid (retorna [lat,lng] ou null)
+  const centroidFromPoints = (px?: number[] | null, py?: number[] | null): [number, number] | null => {
+    if (!px || !py) return null;
+    const len = Math.min(px.length, py.length);
+    if (len === 0) return null;
+    let sx = 0, sy = 0;
+    for (let i = 0; i < len; i++) {
+      const x = Number(px[i]);
+      const y = Number(py[i]);
+      if (isNaN(x) || isNaN(y)) continue;
+      sx += x; sy += y;
+    }
+    const count = len;
+    return count > 0 ? [sx / count, sy / count] : null;
   };
 
   // recalcula filteredLocations quando seleciona animal ou altera data
@@ -633,6 +697,18 @@ const AnimaisPage: React.FC = () => {
       }
     };
   }, []);
+
+  // cria mapa da plantação quando o modal estiver aberto e a tab for 'mapa'
+  useEffect(() => {
+    if (showPlantacaoModal && plantacaoModalTab === 'mapa' && selectedPlantacao) {
+      // delay pequeno para garantir que o container do modal/mapa está no DOM
+      const t = setTimeout(() => {
+        console.log('Opening plantacao mapa, selectedPlantacao:', selectedPlantacao);
+        createPlantacaoMap();
+      }, 120);
+      return () => clearTimeout(t);
+    }
+  }, [showPlantacaoModal, plantacaoModalTab, selectedPlantacao]);
 
   return (
     <IonPage style={{ backgroundColor: "#FFF9E5", color: "#004030" }}>
@@ -1266,7 +1342,22 @@ const AnimaisPage: React.FC = () => {
           {plantacaoModalTab === 'info' && selectedPlantacao && (
             <div style={{ padding: 16 }}>
               <h3 style={{ marginTop: 0 }}>{selectedPlantacao.planta}</h3>
-              <p><strong>Localização:</strong> {selectedPlantacao.localizacaoX ?? '—'}, {selectedPlantacao.localizacaoY ?? '—'}</p>
+
+              {/* Mostrar localização pontual (se existir) */}
+              
+              {/* Se houver pontos do polígono, mostrar resumo (centro e número de vértices) */}
+              {Array.isArray(selectedPlantacao.pontosx) && Array.isArray(selectedPlantacao.pontosy) && selectedPlantacao.pontosx.length > 0 && selectedPlantacao.pontosy.length > 0 ? (
+                (() => {
+                  const c = centroidFromPoints(selectedPlantacao.pontosx, selectedPlantacao.pontosy);
+                  return (
+                    <div>
+                      <p><strong>Polígono:</strong> {Math.min(selectedPlantacao.pontosx.length, selectedPlantacao.pontosy.length)} pontos</p>
+                      <p><strong>Centro aproximado:</strong> {c ? `${c[0].toFixed(6)}, ${c[1].toFixed(6)}` : '—'}</p>
+                    </div>
+                  );
+                })()
+              ) : null}
+
               <p><strong>Criado em:</strong> {selectedPlantacao.createdAt ? new Date(selectedPlantacao.createdAt).toLocaleString() : '—'}</p>
             </div>
           )}
