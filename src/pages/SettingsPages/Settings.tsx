@@ -14,21 +14,63 @@ import {
   IonToast,
   useIonViewDidEnter,
   IonTabBar,
-  IonTabButton
+  IonTabButton,
+  IonModal,
+  IonInput,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonTitle
 } from '@ionic/react';
 import { useHistory } from 'react-router';
-import { personOutline, cardOutline, chevronForward, settingsOutline, logOutOutline, mapOutline, cartOutline, listOutline, sparklesOutline, bandageOutline } from 'ionicons/icons';
+import { personOutline, cardOutline, chevronForward, settingsOutline, logOutOutline, mapOutline, cartOutline, listOutline, sparklesOutline, bandageOutline, keyOutline } from 'ionicons/icons';
 import { useAuth } from '../../AuthProvider';
 import { authApi } from '../../hooks/authApi';
+import settingsApi from '../../hooks/settingsApi';
 import '../SettingsPages/Settings.css';
 
 const Settings: React.FC = () => {
   const { user, Login } = useAuth();
   const { logout } = authApi(user, Login);
+  const { editPassword } = settingsApi();
   const history = useHistory();
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const handleChangePassword = async () => {
+    try {
+      if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        setToastMessage('Preencha todos os campos');
+        setToastColor('warning');
+        setShowToast(true);
+        return;
+      }
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        setToastMessage('As senhas não coincidem');
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+      await editPassword(passwordData.oldPassword, passwordData.newPassword);
+      setToastMessage('Senha alterada com sucesso!');
+      setToastColor('success');
+      setShowToast(true);
+      setShowPasswordModal(false);
+      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      console.error('Erro ao alterar senha:', error);
+      setToastMessage(error?.response?.data?.error || error?.response?.data?.message || 'Erro ao alterar senha. Verifique sua senha atual.');
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -72,9 +114,10 @@ const Settings: React.FC = () => {
       {/* 🔹 CONTEÚDO */}
       <IonContent className="page-background" fullscreen>
         <IonList>
-          <IonItem button onClick={() => history.push('/settings/conta')}>
-            <IonIcon slot="start" icon={personOutline} style={{ color: '#004030' }} />
-            <IonLabel style={{ color: '#004030' }}>Conta</IonLabel>
+          
+          <IonItem button onClick={() => setShowPasswordModal(true)}>
+            <IonIcon slot="start" icon={keyOutline} style={{ color: '#004030' }} />
+            <IonLabel style={{ color: '#004030' }}>Mudar Senha</IonLabel>
             <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
           </IonItem>
 
@@ -84,6 +127,72 @@ const Settings: React.FC = () => {
             <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
           </IonItem>
         </IonList>
+
+        {/* Modal de mudança de senha */}
+        <IonModal isOpen={showPasswordModal} onDidDismiss={() => setShowPasswordModal(false)}>
+          <IonHeader>
+            <IonToolbar style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
+              <IonTitle>Mudar Senha</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => setShowPasswordModal(false)}>Cancelar</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+
+          <IonContent style={{ '--background': '#FFF9E5' }}>
+            <IonGrid>
+              <IonRow>
+                <IonCol size="12">
+                  <IonItem>
+                    <IonLabel position="stacked">Senha Atual</IonLabel>
+                    <IonInput 
+                      type="password" 
+                      value={passwordData.oldPassword} 
+                      onIonChange={e => setPasswordData(prev => ({ ...prev, oldPassword: e.detail.value! }))} 
+                      placeholder="Digite sua senha atual"
+                    />
+                  </IonItem>
+                </IonCol>
+              </IonRow>
+
+              <IonRow>
+                <IonCol size="12">
+                  <IonItem>
+                    <IonLabel position="stacked">Nova Senha</IonLabel>
+                    <IonInput 
+                      type="password" 
+                      value={passwordData.newPassword} 
+                      onIonChange={e => setPasswordData(prev => ({ ...prev, newPassword: e.detail.value! }))} 
+                      placeholder="Digite a nova senha"
+                    />
+                  </IonItem>
+                </IonCol>
+              </IonRow>
+
+              <IonRow>
+                <IonCol size="12">
+                  <IonItem>
+                    <IonLabel position="stacked">Confirmar Nova Senha</IonLabel>
+                    <IonInput 
+                      type="password" 
+                      value={passwordData.confirmPassword} 
+                      onIonChange={e => setPasswordData(prev => ({ ...prev, confirmPassword: e.detail.value! }))} 
+                      placeholder="Confirme a nova senha"
+                    />
+                  </IonItem>
+                </IonCol>
+              </IonRow>
+
+              <IonRow>
+                <IonCol size="12">
+                  <IonButton expand="block" style={{ '--background': '#004030', color: '#FFF9E5', marginTop: '20px' }} onClick={handleChangePassword}>
+                    Atualizar Senha
+                  </IonButton>
+                </IonCol>
+              </IonRow>
+            </IonGrid>
+          </IonContent>
+        </IonModal>
 
         <IonToast
           isOpen={showToast}

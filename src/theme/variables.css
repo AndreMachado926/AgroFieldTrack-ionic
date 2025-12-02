@@ -12,3 +12,9 @@ ion-tab-bar {
   --color: #004030;
   --color-selected: #004030;
 }
+
+/* Hide Leaflet attribution link in bottom-right */
+.leaflet-control-attribution,
+.leaflet-control-attribution a[href*="leaflet"] {
+  display: none !important;
+}

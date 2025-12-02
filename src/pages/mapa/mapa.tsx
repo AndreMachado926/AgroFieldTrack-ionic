@@ -7,8 +7,9 @@ import * as jwtDecode from "jwt-decode";
 // Importar ícones padrão do leaflet
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
-import { IonButton, IonContent, IonFooter, IonIcon, IonLabel, IonPage, IonToolbar } from "@ionic/react";
-import { bandageOutline, cartOutline, listOutline, mapOutline, personOutline } from "ionicons/icons";
+import { IonButton, IonContent, IonFooter, IonIcon, IonLabel, IonPage, IonToolbar, IonHeader, IonButtons } from "@ionic/react";
+import { bandageOutline, cartOutline, listOutline, mapOutline, personOutline, searchCircleOutline, settingsOutline } from "ionicons/icons";
+import logo from "../lista/logo.png";
 
 L.Marker.prototype.options.icon = L.icon({
     iconUrl: icon,
@@ -37,6 +38,7 @@ const MapaAnimaisPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const mapRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
+    const [isAccordionOpen, setIsAccordionOpen] = useState(false);
 
     const getJwtFromAuthCookie = (): string | null => {
         const raw = document.cookie.split(';').map(s => s.trim()).find(c => c.startsWith('auth='));
@@ -142,6 +144,41 @@ const MapaAnimaisPage: React.FC = () => {
 
     return (
         <IonPage>
+            <IonHeader>
+                <IonToolbar
+                    style={{
+                        ["--background" as any]: "#FFF9E5",
+                        ["--color" as any]: "#004030",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "6px 12px",
+                    } as React.CSSProperties}
+                >
+                    <img
+                        src={logo}
+                        alt="perfil"
+                        style={{
+                            borderRadius: "50%",
+                            width: 40,
+                            height: 40,
+                            border: "2px solid #DCD0A8",
+                            objectFit: "cover",
+                        }}
+                    />
+
+                    <IonButtons slot="end">
+                        <IonButton fill="clear" href="/settings">
+                            <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
+                        </IonButton>
+                    </IonButtons>
+                    <IonButtons slot="end" id="search">
+                        <IonButton onClick={() => setIsAccordionOpen(!isAccordionOpen)}>
+                            <IonIcon icon={searchCircleOutline} size="large" />
+                        </IonButton>
+                    </IonButtons>
+                </IonToolbar>
+            </IonHeader>
             <IonContent fullscreen>
                 <div style={{ width: "100%", height: "100%", position: "relative" }}>
                     {loading && (

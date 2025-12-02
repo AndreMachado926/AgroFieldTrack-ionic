@@ -42,8 +42,6 @@ const Conta: React.FC = () => {
   const [profileData, setProfileData] = useState({
     _id: "",
     username: '',
-    newPassword: '',
-    oldPassword: '',
     profilePic: '',
   });
 
@@ -53,8 +51,6 @@ const Conta: React.FC = () => {
       setProfileData({
         _id: user._id || "",
         username: user.username || '',
-        newPassword: '',
-        oldPassword: '',
         profilePic: user.profilePic || '',
       });
     }
@@ -104,8 +100,8 @@ const Conta: React.FC = () => {
 
   const handleSaveProfile = async () => {
     try {
-      const { username, newPassword, oldPassword } = profileData;
-      await updateProfile({ username, oldPassword, newPassword });
+      const { username } = profileData;
+      await updateProfile({ username });
       const updatedUser = { ...currentUser, username, profilePic: profileData.profilePic };
       updateProPic(profileData.profilePic);
       Login(updatedUser);
@@ -116,7 +112,7 @@ const Conta: React.FC = () => {
       fetchUser();
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
-      setToastMessage('Erro ao atualizar perfil. Verifique sua senha atual.');
+      setToastMessage('Erro ao atualizar perfil. Tente novamente.');
       setToastColor('danger');
       setShowToast(true);
     }
@@ -125,17 +121,31 @@ const Conta: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar className="toolbar-custom">
-          <img src={logo} alt="perfil" className="toolbar-logo" />
+        <IonToolbar
+          style={{
+            ["--background" as any]: "#FFF9E5",
+            ["--color" as any]: "#004030",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "6px 12px",
+          } as React.CSSProperties}
+        >
+          <img
+            src={logo}
+            alt="perfil"
+            style={{
+              borderRadius: "50%",
+              width: 40,
+              height: 40,
+              border: "2px solid #DCD0A8",
+              objectFit: "cover",
+            }}
+          />
+
           <IonButtons slot="end">
-            <IonButton fill="clear" href="/settings" >
-              <IonIcon icon={settingsOutline} className="icon-green" />
-            </IonButton>
-            <IonButton onClick={() => setShowEditProfile(true)}>
-              <IonIcon icon={createSharp} />
-            </IonButton>
-            <IonButton onClick={() => setShowDeleteConfirm(true)}>
-              <IonIcon icon={trashBin} />
+            <IonButton fill="clear" href="/settings">
+              <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -200,24 +210,6 @@ const Conta: React.FC = () => {
                   <IonItem>
                     <IonLabel position="stacked">Username</IonLabel>
                     <IonInput value={profileData.username} onIonChange={e => setProfileData(prev => ({ ...prev, username: e.detail.value! }))} />
-                  </IonItem>
-                </IonCol>
-              </IonRow>
-
-              <IonRow>
-                <IonCol size="12">
-                  <IonItem>
-                    <IonLabel position="stacked">Senha Atual</IonLabel>
-                    <IonInput type="password" value={profileData.oldPassword} onIonChange={e => setProfileData(prev => ({ ...prev, oldPassword: e.detail.value! }))} />
-                  </IonItem>
-                </IonCol>
-              </IonRow>
-
-              <IonRow>
-                <IonCol size="12">
-                  <IonItem>
-                    <IonLabel position="stacked">Nova Senha</IonLabel>
-                    <IonInput type="password" value={profileData.newPassword} onIonChange={e => setProfileData(prev => ({ ...prev, newPassword: e.detail.value! }))} />
                   </IonItem>
                 </IonCol>
               </IonRow>

@@ -120,9 +120,28 @@ const settingsApi = () => {
       console.error("Erro ao buscar histórico de compras:", error);
       throw error;
     }
-  }; 
+  };
+
+  const editPassword = async (oldPassword: string, newPassword: string): Promise<any> => {
+    try {
+      const response = await axios.post(
+        `${url}/settings/editpassword`,
+        { oldPassword, newPassword },
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+          withCredentials: true,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error updating password:", error);
+      throw error;
+    }
+  };
   
-  return {updateProfilePic, updateProfile, deleteAccount, getHistoricoSubscricoes, getHistoricoCompras};
+  return {updateProfilePic, updateProfile, deleteAccount, getHistoricoSubscricoes, getHistoricoCompras, editPassword};
 };
 
 export default settingsApi;
