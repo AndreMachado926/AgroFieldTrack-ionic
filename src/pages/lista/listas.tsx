@@ -45,6 +45,7 @@ import {
   arrowUndoOutline,
   trashOutline
 } from "ionicons/icons";
+import { searchCircleOutline } from 'ionicons/icons';
 import * as jwtDecode from "jwt-decode";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -119,6 +120,8 @@ const AnimaisPage: React.FC = () => {
   const mapInstanceRefPlant = useRef<L.Map | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+  const toggleAccordion = () => setIsAccordionOpen(!isAccordionOpen);
   const [showModal, setShowModal] = useState(false);
   const [newAnimal, setNewAnimal] = useState<Partial<Animal>>({});
   const [newPlantacao, setNewPlantacao] = useState<Partial<Plantacao>>({});
@@ -724,7 +727,13 @@ const AnimaisPage: React.FC = () => {
       // First, compute simple nearest neighbors (O(n^2) is fine for small n)
       const overlayLayers: L.Layer[] = [];
       if (coords.length === 1) {
-        map.setView(coords[0], 16);
+        // Don't change zoom when adding a single point; just pan the map to the point
+        try {
+          map.panTo(coords[0]);
+        } catch (e) {
+          // fallback for any map errors: keep existing behavior but still try not to zoom
+          try { map.setView(coords[0], map.getZoom()); } catch (err) { /* ignore */ }
+        }
       } else if (coords.length > 1) {
         // compute NN for each point
         const pts = coords.map(c => ({ lat: Number((c as any)[0]), lng: Number((c as any)[1]) }));
@@ -755,8 +764,16 @@ const AnimaisPage: React.FC = () => {
           overlayLayers.push(poly);
         }
 
-        // fit bounds to all points
-        map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] });
+        // Keep current zoom and pan to make sure points are visible.
+        // Using panInsideBounds avoids zoom changes while still ensuring map pans only if needed.
+        try {
+          // padding is not present on PanOptions in some Leaflet type definitions,
+          // so cast the options object to any to allow the padding property.
+          map.panInsideBounds(L.latLngBounds(coords), { padding: [20, 20] } as any);
+        } catch (e) {
+          // If panInsideBounds isn't available or fails, fall back to panTo center
+          try { map.panTo(L.latLngBounds(coords).getCenter()); } catch (err) { /* ignore */ }
+        }
       }
 
       // store overlayLayers in map (attach to map object) so we can remove them next update
@@ -766,6 +783,101 @@ const AnimaisPage: React.FC = () => {
     } catch (err) {
       console.error('updateAddMap error', err);
     }
+  };
+
+  // Remove any point that is inside the polygon formed by the other points,
+  // or that sits (approximately) at the centroid of the other points.
+  // This makes the editor robust to pasted/accidental central pins and to
+  // the case where a point was placed first and later surrounded by others.
+  const removeCentralPoints = (points: [number, number][]) => {
+    if (!points || points.length < 1) return points;
+
+    const thresholdDeg = 0.00005; // ~5.5m approx — adjust if needed
+    const thr2 = thresholdDeg * thresholdDeg;
+
+    // Monotone chain convex hull (returns points in CCW order, no duplicates)
+    const convexHull = (pts: [number, number][]) => {
+      const arr = pts.map(p => [p[0], p[1]] as [number, number]);
+      if (arr.length <= 1) return arr;
+      arr.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
+      const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const lower: [number, number][] = [];
+      for (const p of arr) {
+        while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+        lower.push(p);
+      }
+      const upper: [number, number][] = [];
+      for (let i = arr.length - 1; i >= 0; i--) {
+        const p = arr[i];
+        while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+        upper.push(p);
+      }
+      upper.pop(); lower.pop();
+      return lower.concat(upper);
+    };
+
+    const pointInPolygon = (pt: [number, number], poly: [number, number][]) => {
+      if (!poly || poly.length < 3) return false;
+      let x = pt[0], y = pt[1];
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i][0], yi = poly[i][1];
+        const xj = poly[j][0], yj = poly[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 0.0) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    };
+
+    // Iterate removals until stable (removing a central point may cause other
+    // points to become central, so repeat).
+    let current = points.slice();
+    while (true) {
+      const keep: [number, number][] = [];
+      let removedAny = false;
+
+      for (let idx = 0; idx < current.length; idx++) {
+        const p = current[idx];
+        const others = current.filter((_, i) => i !== idx);
+
+        let removed = false;
+
+        if (others.length >= 3) {
+          try {
+            const hull = convexHull(others);
+            if (hull.length >= 3 && pointInPolygon(p, hull)) {
+              removed = true;
+            }
+          } catch (e) {
+            console.warn('hull or pip failed', e);
+          }
+        }
+
+        if (!removed && others.length > 0) {
+          // centroid proximity fallback
+          let sx = 0, sy = 0;
+          for (const o of others) { sx += o[0]; sy += o[1]; }
+          const cx = sx / others.length;
+          const cy = sy / others.length;
+          if (!isNaN(cx) && !isNaN(cy)) {
+            const dx = p[0] - cx;
+            const dy = p[1] - cy;
+            if ((dx*dx + dy*dy) <= thr2) removed = true;
+          }
+        }
+
+        if (removed) {
+          removedAny = true;
+        } else {
+          keep.push(p);
+        }
+      }
+
+      if (!removedAny) break;
+      current = keep;
+    }
+
+    return current;
   };
 
   // init map for adding points
@@ -801,6 +913,13 @@ const AnimaisPage: React.FC = () => {
       };
 
       map.on('click', (e: any) => {
+        // Ignore click events that are part of a double-click (detail > 1)
+        try {
+          if (e && e.originalEvent && e.originalEvent.detail && e.originalEvent.detail > 1) {
+            return; // ignore double-click
+          }
+        } catch (err) { /* ignore */ }
+
         const lat = Number(e.latlng.lat);
         const lng = Number(e.latlng.lng);
 
@@ -840,6 +959,19 @@ const AnimaisPage: React.FC = () => {
   };
 
   useEffect(() => {
+    // sanitize points: remove any that sit at the centroid of the others
+    try {
+      const cleaned = removeCentralPoints(addPoints);
+      if (cleaned.length !== addPoints.length) {
+        setAddPoints(cleaned);
+        // sync newPlantacao now so UI stays consistent (updateAddMap will run on next effect)
+        setNewPlantacao(np => ({ ...np, pontosx: cleaned.map(p => p[0]), pontosy: cleaned.map(p => p[1]) }));
+        return;
+      }
+    } catch (e) {
+      console.warn('removeCentralPoints failed', e);
+    }
+
     updateAddMap();
     // also sync newPlantacao in case addPoints changed externally
     setNewPlantacao(np => ({ ...np, pontosx: addPoints.map(p => p[0]), pontosy: addPoints.map(p => p[1]) }));
@@ -899,24 +1031,60 @@ const AnimaisPage: React.FC = () => {
       setNewPlantacao(np => ({ ...np, pontosx: parsed.map(p => p[0]), pontosy: parsed.map(p => p[1]) }));
     }
   };
+// distância mínima em metros entre pontos (evita overlap)
+const MIN_DISTANCE = 3; // ajusta se quiseres
+
+function isPointTooClose(lat: number, lng: number, points: any[]) {
+  for (const p of points) {
+    const dist = Math.sqrt(
+      Math.pow(lat - p.lat, 2) + Math.pow(lng - p.lng, 2)
+    );
+
+    // como lat/lng não são metros, mas serve para impedir overlap no zoom
+    if (dist < 0.00003) { 
+      return true;
+    }
+  }
+  return false;
+}
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar style={{ '--background': '#004030', '--color': '#FFF' }}>
-          <IonButtons slot="start">
-            <IonButton routerLink="/home">
-              <IonIcon slot="icon-only" name="arrow-back" />
-            </IonButton>
-          </IonButtons>
-          <IonTitle>Animais e Plantações</IonTitle>
-          <IonButtons slot="end">
-            <IonButton routerLink="/settings">
-              <IonIcon slot="icon-only" name="settings-outline" />
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
+        <IonHeader>
+          <IonToolbar
+            style={{
+              ["--background" as any]: "#FFF9E5",
+              ["--color" as any]: "#004030",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "6px 12px",
+            } as React.CSSProperties}
+          >
+            <img
+              src={logo}
+              alt="perfil"
+              style={{
+                borderRadius: "50%",
+                width: 40,
+                height: 40,
+                border: "2px solid #DCD0A8",
+                objectFit: "cover",
+              }}
+            />
+
+            <IonButtons slot="end">
+              <IonButton fill="clear" href="/settings">
+                <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
+              </IonButton>
+            </IonButtons>
+            <IonButtons slot="end" id="search">
+              <IonButton onClick={() => toggleAccordion()}>
+                <IonIcon icon={searchCircleOutline} size="large" />
+              </IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
 
       <IonContent>
         <IonSegment value={segment} onIonChange={(e: any) => {
@@ -1133,7 +1301,7 @@ const AnimaisPage: React.FC = () => {
                       <IonInput
                         label="ó nome"
                         labelPlacement="stacked"
-                        placeholder="Nome da plantação"
+                        placeholder="Nome da planta"
                         value={newPlantacao.planta}
                         debounce={0}
                         onIonInput={e => setNewPlantacao({ ...newPlantacao, planta: e.detail.value! })}
@@ -1143,7 +1311,7 @@ const AnimaisPage: React.FC = () => {
                       <IonInput
                         label="nome"
                         labelPlacement="stacked"
-                        placeholder="nome (novo campo)"
+                        placeholder="nome ds plantação"
                         value={(newPlantacao as any).nome}
                         debounce={0}
                         onIonInput={e => setNewPlantacao({ ...newPlantacao, nome: e.detail.value! })}
@@ -1164,25 +1332,6 @@ const AnimaisPage: React.FC = () => {
                       <div ref={mapAddRef} id="map-add-container" style={{ width: '100%', minHeight: 300, borderRadius: 8, overflow: 'hidden' }} />
                       <div style={{ marginTop: 8 }}>
                         <IonLabel>Editor de pontos — clique no mapa para adicionar pins</IonLabel>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'flex-start' }}>
-                          <div style={{ flex: 1 }}>
-                            {/* visual helper (the actual map is the element above bound to mapAddRef) */}
-                            <div style={{ width: '100%', minHeight: 120, borderRadius: 8, overflow: 'hidden' }} />
-                            <small style={{ color: '#666' }}>Toque/ clique no mapa para colocar pontos. Use "Desfazer" para remover o último e "Limpar" para reiniciar.</small>
-                          </div>
-                          <div style={{ width: 160, maxHeight: 300, overflowY: 'auto', padding: 8, background: '#FFF', borderRadius: 8 }}>
-                            <strong style={{ fontSize: 12, color: '#004030' }}>Pontos colocados</strong>
-                            {addPoints.length === 0 ? (
-                              <p style={{ fontSize: 12, color: '#666' }}>Nenhum ponto</p>
-                            ) : (
-                              <ol style={{ paddingLeft: 16, margin: '8px 0' }}>
-                                {addPoints.map((p, i) => (
-                                  <li key={i} style={{ fontSize: 12, color: '#004030' }}>{p[0].toFixed(6)}, {p[1].toFixed(6)}</li>
-                                ))}
-                              </ol>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </IonList>
@@ -1632,6 +1781,8 @@ const AnimaisPage: React.FC = () => {
           .leaflet-popup-tip {
             background-color: #fff;
           }
+          /* Hide the 'Leaflet' credit link but keep other tile attributions (e.g. OpenStreetMap) */
+          .leaflet-control-attribution a[href*="leaflet"] { display: none !important; }
           /* Ensure add/map containers have explicit min-heights so Leaflet can initialize */
           #map-add-container { min-height: 300px; height: 300px; }
           #map-container-plant { min-height: 320px; height: 100%; }
