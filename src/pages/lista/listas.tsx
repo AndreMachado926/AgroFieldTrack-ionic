@@ -152,7 +152,7 @@ const AnimaisPage: React.FC = () => {
   // modal tabs: 'info' | 'mapa' | 'remedios' (inicia em 'info')
   const [modalTab, setModalTab] = useState<'info' | 'mapa' | 'remedios'>('info');
 
-  const API_BASE = ("http://localhost:8000").replace(/\/+$/, '');
+  const API_BASE = ("https://agrofieldtrack-node-1yka.onrender.com").replace(/\/+$/, '');
 
   // helper: ler token do cookie e decodificar payload JWT
   const getTokenFromCookie = (name = 'jwt'): string | null => {

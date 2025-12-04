@@ -30,7 +30,7 @@ interface Animal {
     locationHistory?: Array<{ x: number; y: number; at: string }>;
 }
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
 const MapaAnimaisPage: React.FC = () => {
     const [animais, setAnimais] = useState<Animal[]>([]);

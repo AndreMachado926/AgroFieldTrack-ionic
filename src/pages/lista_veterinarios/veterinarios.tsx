@@ -83,7 +83,7 @@ const VeterinariosPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [newVeterinario, setNewVeterinario] = useState<Partial<Veterinario>>({});
 
-  const API_BASE = ("http://localhost:8000").replace(/\/+$/,'');
+  const API_BASE = ("https://agrofieldtrack-node-1yka.onrender.com").replace(/\/+$/,'');
 
   const fetchVeterinarios = async () => {
     setLoading(true);

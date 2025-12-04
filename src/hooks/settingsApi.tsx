@@ -10,7 +10,7 @@ export interface ProfileUpdateData {
   newPassword?: string;
 }
 
-const url = "http://localhost:8000";
+const url = "https://agrofieldtrack-node-1yka.onrender.com";
 
 
 const settingsApi = () => {

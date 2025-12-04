@@ -29,7 +29,7 @@ export interface CreateUser {
   password: string;
 }
 
-const url = "http://localhost:8000";
+const url = "https://agrofieldtrack-node-1yka.onrender.com";
 
 export const authApi = (user: UserDatabase | null, Login: (userData: any) => void) => {
   const login = async (user: User): Promise<any> => {
