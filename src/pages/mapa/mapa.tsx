@@ -157,13 +157,16 @@ const MapaAnimaisPage: React.FC = () => {
                 >
                     <img
                         src={logo}
+                        srcSet={`${logo} 1x, ${logo} 2x`}
                         alt="perfil"
+                        width={40}
+                        height={40}
                         style={{
                             borderRadius: "50%",
-                            width: 40,
-                            height: 40,
                             border: "2px solid #DCD0A8",
                             objectFit: "cover",
+                            imageRendering: 'auto',
+                            WebkitFontSmoothing: 'antialiased'
                         }}
                     />
 
