@@ -1,122 +1,122 @@
-import React, { useEffect, useState } from "react";
-import { IonPage, IonContent, IonInput, IonButton, IonItem } from "@ionic/react";
-import { useAuth } from "../../AuthProvider";
-import authApi from "../../hooks/authApi";
+import React from "react";
+import axios from "axios";
+import {
+  IonPage,
+  IonContent,
+  IonInput,
+  IonButton,
+  IonItem,
+  IonText,
+} from "@ionic/react";
 import { useHistory } from "react-router-dom";
-import './login.css';
+import "./login.css";
+
+// 🔥 Backend base
+const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
+
+// 🔥 Axios configurado para enviar cookies
+axios.defaults.withCredentials = true; // obrigatório para cookies cross-site
 
 const Login: React.FC = () => {
-  const { user, Login } = useAuth();
-  const { login } = authApi(user, Login);
   const history = useHistory();
-  const [loading, setLoading] = useState(false);
-  const [showLoading, setShowLoading] = useState(false);
-  const [pendingError, setPendingError] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState({
-    username: "",
-    password: ""
-  });
 
-  useEffect(() => {
-    if (pendingError && !showLoading) {
-      setTimeout(() => {
-        alert(pendingError);
-        setPendingError(null);
-      }, 50);
-    }
-  }, [pendingError, showLoading]);
-
-  const handleChange = (field: "username" | "password", value: string | null | undefined) => {
-    setCredentials(prev => ({
-      ...prev,
-      [field]: value || "",
-    }));
-  };
+  // 🔥 variáveis diretas sem useState
+  let username: string = "";
+  let password: string = "";
 
   const handleLogin = async () => {
-   const result = await login(credentials);
+    try {
+      const res = await axios.post(
+        `${API_BASE}/login`,
+        { username, password },
+        { withCredentials: true }
+      );
 
-    if (result.success && result.data.token) {
-      history.push("/lista");
-    } else {
-      setPendingError(result.error);
-      setLoading(false);
+      const token = res.data.token;
+      if (token) {
+        localStorage.setItem("authToken", token); // ✅ Guardar no localStorage
+        console.log("Token guardado:", token);
+      }
+
+      history.replace("/lista");
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data || "Credenciais inválidas");
     }
   };
 
-  const goTo = (path: string) => {
-    history.push(path);
-  };
 
   return (
-    <>
-
-
-      {(
-        <IonPage className="login-page">
-          <IonContent fullscreen>
-            <div className="login-wrapper">
-
-              <div className="static-splash">
-                <div className="static-splash-content">
-                  <img
-                    src="/icon/image.png"
-                    alt="SeaWatch Logo"
-                    className="splash-logo "
-                  />
-                  <h1 className="splash-title " style={{ color: "black" }}>
-                    AgroFieldTrack
-                  </h1>
-                </div>
-              </div>
-
-              <div className="login-container">
-                <div className="login-logo">
-                  <div className="logo-content">
-                    <h2>Bem vindo</h2>
-                  </div>
-                </div>
-                <IonItem>
-                  <IonInput className="modal-input"
-                    label="Username"
-                    labelPlacement="floating"
-                    fill="solid"
-                    value={credentials.username}
-                    onIonInput={(e) => handleChange("username", e.detail.value)}
-                  />
-                </IonItem>
-
-                <IonItem>
-                  <IonInput
-                    className="modal-input"
-                    label="Password"
-                    labelPlacement="floating"
-                    fill="solid"
-                    type="password"
-                    value={credentials.password}
-                    onIonInput={(e) => handleChange("password", e.detail.value)}
-                  />
-                </IonItem>
-
-               
-
-                <IonButton expand="block" onClick={handleLogin}>
-                  Entrar
-                </IonButton>
-                <br />
-                <div >
-                  <span style={{ color: "#8b8b8bda" }}>Não tem uma conta? </span>
-                  <a onClick={() => goTo("/signup")} style={{ color: "#4A9782" }}> Cadastre - se</a>
-                </div>
-                <div>
-                  <a onClick={() => goTo("/fishwiki")} style={{ color: "#5bbfa4ff" }}>Entrar sem iniciar a sessão</a>
-                </div>
-              </div>
+    <IonPage className="login-page">
+      <IonContent fullscreen>
+        <div className="login-wrapper">
+          {/* Splash */}
+          <div className="static-splash">
+            <div className="static-splash-content">
+              <img
+                src="/icon/image.png"
+                alt="AgroFieldTrack Logo"
+                className="splash-logo"
+              />
+              <h1 className="splash-title" style={{ color: "black" }}>
+                AgroFieldTrack
+              </h1>
             </div>
-          </IonContent>
-        </IonPage >
-      )}
-    </>
+          </div>
+
+          {/* Form */}
+          <div className="login-container">
+            <div className="login-logo">
+              <h2>Bem-vindo</h2>
+            </div>
+
+            <IonItem>
+              <IonInput
+                placeholder="Username"
+                fill="solid"
+                onIonInput={e => (username = e.detail.value!)}
+              />
+            </IonItem>
+
+            <IonItem>
+              <IonInput
+                placeholder="Password"
+                fill="solid"
+                type="password"
+                onIonInput={e => (password = e.detail.value!)}
+              />
+            </IonItem>
+
+            <IonButton
+              expand="block"
+              onClick={handleLogin}
+              style={{ marginTop: 20 }}
+            >
+              Entrar
+            </IonButton>
+
+            <div style={{ textAlign: "center", marginTop: 10 }}>
+              <span style={{ color: "#8b8b8bda" }}>Não tem uma conta?</span>
+              <a
+                onClick={() => history.push("/signup")}
+                style={{ color: "#4A9782", marginLeft: 5, cursor: "pointer" }}
+              >
+                Cadastre-se
+              </a>
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 5 }}>
+              <a
+                onClick={() => history.push("/fishwiki")}
+                style={{ color: "#5bbfa4ff", cursor: "pointer" }}
+              >
+                Entrar sem iniciar a sessão
+              </a>
+            </div>
+          </div>
+        </div>
+      </IonContent>
+    </IonPage>
   );
 };
 

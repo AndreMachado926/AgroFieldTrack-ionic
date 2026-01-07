@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {IonPage, IonContent, IonButton, IonToast, IonSpinner} from "@ionic/react";
 import { useHistory, useLocation } from "react-router-dom";
-import verifyEmailApi from "../../hooks/verificationApi";
 import "./login.css";
 
 const Verification: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
-  const { verifyEmail } = verifyEmailApi();
 
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', color: '' });
@@ -15,7 +13,6 @@ const Verification: React.FC = () => {
   useEffect(() => {
     const runVerification = async () => {
       try {
-        await verifyEmail();
         setToast({ show: true, message: "Email verificado com sucesso!", color: "success" });
 
         setTimeout(() => {

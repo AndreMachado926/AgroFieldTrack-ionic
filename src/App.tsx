@@ -9,15 +9,15 @@ import Signup from './pages/login/signup';
 import Verification from './pages/login/verification';
 import VeterinariosPage from './pages/lista_veterinarios/veterinarios';
 import lista from './pages/lista/listas';
-import { AuthProvider } from './AuthProvider';
 import { setupIonicReact } from '@ionic/react';
 import MarketDetalhes from './pages/marketplace/marketdetails';
 import Market from './pages/marketplace/market';
 import Settings from './pages/SettingsPages/Settings';
 import Conta from './pages/SettingsPages/conta';
 import Mapa from './pages/mapa/mapa';
-import PrivateRoutes from './components/PrivateRoutes';
-
+import AdicionarAnimal from './pages/lista/adicionar-animal';
+import AdicionarPlantacao from './pages/lista/adicionar-plantacao';
+import ChatPage from './pages/lista_veterinarios/ChatPage';
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
 
@@ -41,9 +41,7 @@ setupIonicReact();
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <InnerApp />
-    </AuthProvider>
+    <InnerApp />
   );
 };
 
@@ -58,13 +56,20 @@ const InnerApp: React.FC = () => {
             <Route exact path="/" component={Login} />
             <Route exact path="/signup" component={Signup} />
             <Route exact path="/verification" component={Verification} />
-            <PrivateRoutes exact path="/marketdetalhes/:id" component={MarketDetalhes} />
-            <PrivateRoutes exact path="/market" component={Market} />
-            <PrivateRoutes exact path="/lista" component={lista} />
-            <PrivateRoutes exact path="/veterinarios" component={VeterinariosPage} />
-            <PrivateRoutes exact path="/settings" component={Settings} />
-            <PrivateRoutes exact path="/settings/conta" component={Conta} />
-            <PrivateRoutes exact path="/mapa" component={Mapa} />
+            <Route exact path="/marketdetalhes/:id" component={MarketDetalhes} />
+            <Route exact path="/market" component={Market} />
+            <Route exact path="/lista" component={lista} />
+            <Route exact path="/veterinarios" component={VeterinariosPage} />
+            <Route exact path="/settings" component={Settings} />
+            <Route exact path="/settings/conta" component={Conta} />
+            <Route exact path="/mapa" component={Mapa} />
+            <Route exact path="/adicionar-animal" component={AdicionarAnimal} />
+            <Route exact path="/adicionar-plantacao" component={AdicionarPlantacao} />
+            <Route
+              exact
+              path="/chat/:user1_id/:user1_type/:user2_id/:user2_type"
+              component={ChatPage}
+            />
           </Switch>
         </IonRouterOutlet>
       </IonReactRouter>

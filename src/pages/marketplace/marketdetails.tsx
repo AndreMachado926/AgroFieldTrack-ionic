@@ -1,676 +1,285 @@
-import { IonAlert, IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol, IonContent, IonGrid, IonHeader, IonIcon, IonImg, IonInput, IonItem, IonLabel, IonList, IonModal, IonPage, IonRow, IonSelect, IonSelectOption, IonTitle, IonToolbar } from '@ionic/react';
-import { comunidadeApi, Publicacoes } from '../../hooks/MarketApi';
-import { useEffect, useRef, useState } from 'react';
-import { trashBin, chatbubbleOutline, createSharp, happyOutline, sadOutline, cashOutline, createOutline, trashBinOutline, chevronExpandOutline, sendSharp, qrCodeOutline, trophyOutline, settingsOutline, arrowBack, } from 'ionicons/icons';
-import { useHistory } from 'react-router-dom';
+import React from 'react';
+import axios from 'axios';
+import {
+  IonAlert, IonBackButton, IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonChip, IonCol,
+  IonContent, IonGrid, IonRow, IonHeader, IonInput, IonItem, IonLabel, IonModal, IonPage, IonToolbar, IonTitle, IonIcon, IonImg
+} from '@ionic/react';
 import { RouteComponentProps } from 'react-router';
-import { useAuth } from '../../AuthProvider';
-import './marketdetails.css'
+import {
+  trashBin, createSharp, chatbubbleOutline, sendSharp, createOutline, trashBinOutline, chevronExpandOutline,
+  cashOutline, happyOutline, sadOutline, settingsOutline, arrowBack
+} from 'ionicons/icons';
 import logo from "../lista/logo.png";
-import './market.css'
+import './marketdetails.css';
+import './market.css';
 
-interface DetailsProps extends RouteComponentProps<{
-    id: string
-}> { }
+interface DetailsProps extends RouteComponentProps<{ id: string }> { }
 
-const DetalhesPublicacao: React.FC<DetailsProps> = ({ match }) => {
-    const { getPublicacoesDetails, editDataPublicacoes, deleteDataPublicacoes, addPraticipantes, addComentario, editDataComment, deleteDataComment, getQRCodePublicacao } = comunidadeApi();
-    const history = useHistory();
-    const [showConfirmAlert, setShowConfirmAlert] = useState(false);
-    const [showConfirmLeaveAlert, setShowConfirmLeaveAlert] = useState(false);
-    const [showImageModal, setShowImageModal] = useState(false);
-    const [showCommentInput, setShowCommentInput] = useState(false);
-    const [editCommentId, setEditCommentId] = useState<string | null>(null);
-    const { user } = useAuth();
+interface Publicacao {
+  _id: string;
+  preco: number;
+  author: { _id: string; username: string };
+  title: string;
+  message: string;
+  tags: string[];
+  imagens: string | File | null;
+  publication_type: string;
+  comentarios: Array<{ _id: string; author: { username: string }; message: string; createdAt: string }>;
+  createdAt: string;
+}
 
-    const [publicacao, setPublicacao] = useState<Publicacoes>({
-        _id: "",
-        preco: 0,
-        author: {
-            _id: "",
-            username: ""
-        },
-        title: "",
-        message: "",
-        tags: [],
-        imagens: "",
-        publication_type: "publi",
-        comentarios: [],
-        createdAt: ""
-    });
-    const [isParticipating, setIsParticipating] = useState<boolean>(false);
-    const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-    const [newComment, setNewComment] = useState("");
-    const [showQrModal, setShowQrModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [qrData, setQrData] = useState('');
+interface DetalhesState {
+  publicacao: Publicacao;
+  isParticipating: boolean;
+  showDeleteAlert: boolean;
+  showEditModal: boolean;
+  showImageModal: boolean;
+  showCommentInput: boolean;
+  editCommentId: string | null;
+  newComment: string;
+  qrData: string;
+  showQrModal: boolean;
+}
 
+const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
+axios.defaults.withCredentials = true;
 
-    const fetchPublicacaoDetails = async () => {
-        try {
-            const result = await getPublicacoesDetails(match.params.id);
-            if (result) {
-                setPublicacao(result);
-                return result;
-            }
-        } catch (err) {
-            alert('Erro ao buscar os detalhes da publicação');
-        }
-    };
+class DetalhesPublicacao extends React.Component<DetailsProps, DetalhesState> {
+  state = {
+    publicacao: {
+      _id: "",
+      preco: 0,
+      author: { _id: "", username: "" },
+      title: "",
+      message: "",
+      tags: [],
+      imagens: null,
+      publication_type: "publi",
+      comentarios: [],
+      createdAt: ""
+    } as Publicacao,
+    isParticipating: false,
+    showDeleteAlert: false,
+    showEditModal: false,
+    showImageModal: false,
+    showCommentInput: false,
+    editCommentId: null as string | null,
+    newComment: "",
+    qrData: "",
+    showQrModal: false
+  };
 
-    useEffect(() => {
-        fetchPublicacaoDetails();
-    }, []);
+  componentDidMount() {
+    this.fetchPublicacaoDetails();
+  }
 
+  fetchPublicacaoDetails = async () => {
+    const { id } = this.props.match.params;
+    try {
+      const res = await axios.get(`${API_BASE}/publicacoes/${id}`);
+      if (res.data) {
+        this.setState({ publicacao: res.data });
+      }
+    } catch (err) {
+      alert('Erro ao buscar os detalhes da publicação');
+    }
+  };
 
-    const deleteModal = useRef<HTMLIonModalElement>(null);
+  handleChange = (e: CustomEvent) => {
+    const target = e.target as HTMLInputElement;
+    const { name, value } = target;
+    this.setState(prev => ({
+      publicacao: {
+        ...prev.publicacao,
+        [name]: name === "tags" ? value.split(",").map(t => t.trim()) : value
+      }
+    }));
+  };
 
-    const handleChange = (event: CustomEvent) => {
-        const { name, value } = event.target as HTMLInputElement;
-        setPublicacao((values: any) => ({
-            ...values,
-            [name]: name === "tags" ? value.split(",").map(tag => tag.trim()) : value
-        }));
-    };
+  handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      this.setState(prev => ({
+        publicacao: { ...prev.publicacao, imagens: file }
+      }));
+    }
+  };
 
-    const handleSubmit = () => {
-        editDataPublicacoes(publicacao);
-        closeModal();
-    };
+  handleSubmit = async () => {
+    const { publicacao } = this.state;
+    try {
+      const formData = new FormData();
+      formData.append("title", publicacao.title);
+      formData.append("message", publicacao.message);
+      formData.append("preco", publicacao.preco.toString());
+      formData.append("tags", JSON.stringify(publicacao.tags));
+      if (publicacao.imagens instanceof File) {
+        formData.append("imagens", publicacao.imagens);
+      }
 
-    const handleDelete = async () => {
-        try {
-            await deleteDataPublicacoes(publicacao._id);
-            setShowDeleteAlert(false);
-            history.goBack();
-        } catch (err) {
-            alert('Erro ao deletar')
-        } finally {
-            if (deleteModal.current) {
-                deleteModal.current.dismiss();
-            }
-        }
-    };
+      await axios.put(`${API_BASE}/publicacoes/${publicacao._id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      alert("Publicação atualizada!");
+      this.setState({ showEditModal: false });
+      this.fetchPublicacaoDetails();
+    } catch (err) {
+      alert("Erro ao atualizar publicação");
+    }
+  };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files.length > 0) {
-            const file = event.target.files[0];
-            setPublicacao((prev) => ({
-                ...prev,
-                imagens: file,
-            }));
-        }
-    };
+  handleDelete = async () => {
+    try {
+      await axios.delete(`${API_BASE}/publicacoes/${this.state.publicacao._id}`);
+      alert("Publicação deletada");
+      this.props.history.push("/market");
+    } catch (err) {
+      alert("Erro ao deletar publicação");
+    }
+  };
 
-    const handleSubmitComment = async () => {
-        if (!newComment.trim()) return;
+  handleSubmitComment = async () => {
+    const { newComment, editCommentId, publicacao } = this.state;
+    if (!newComment.trim()) return;
 
-        try {
-            if (editCommentId) {
-                await editDataComment(editCommentId, newComment);
-            } else {
-                await addComentario(publicacao._id, user, newComment);
-            }
+    try {
+      if (editCommentId) {
+        await axios.put(`${API_BASE}/comentarios/${editCommentId}`, { message: newComment });
+      } else {
+        await axios.post(`${API_BASE}/comentarios`, { publicacaoId: publicacao._id, message: newComment });
+      }
+      this.setState({ newComment: "", editCommentId: null, showCommentInput: false });
+      this.fetchPublicacaoDetails();
+    } catch {
+      alert("Erro ao enviar comentário");
+    }
+  };
 
-            setNewComment("");
-            setEditCommentId(null);
-            setShowCommentInput(false);
-            fetchPublicacaoDetails();
-        } catch (error) {
-            alert('Erro ao enviar comentário')
-        }
-    };
+  handleDeleteComment = async (commentId: string) => {
+    try {
+      await axios.delete(`${API_BASE}/comentarios/${commentId}`);
+      this.fetchPublicacaoDetails();
+    } catch {
+      alert("Erro ao deletar comentário");
+    }
+  };
 
-    const handleEditComment = (comentario: any) => {
-        setNewComment(comentario.message);
-        setEditCommentId(comentario._id);
-        setShowCommentInput(true);
-    };
+  getImageSrc = (imagens: string | File | null) => {
+    if (!imagens) return '';
+    if (typeof imagens === 'string') return imagens;
+    if (imagens instanceof File) return URL.createObjectURL(imagens);
+    return '';
+  };
 
-
-    const handleDeleteComment = async (comentarioId: string) => {
-        try {
-            await deleteDataComment(comentarioId);
-
-            fetchPublicacaoDetails();
-        } catch (error) {
-            alert('Erro ao deletar comentário')
-        }
-    };
-
-    const handleCancel = () => {
-        setShowDeleteAlert(false);
-    };
+  render() {
+    const {
+      publicacao, showEditModal, showDeleteAlert, showImageModal, showCommentInput,
+      newComment
+    } = this.state;
 
     const dataObj = new Date(publicacao.createdAt);
-
     const dia = dataObj.getDate().toString().padStart(2, '0');
     const mes = dataObj.toLocaleString('pt-PT', { month: 'short' });
     const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
     const ano = dataObj.getFullYear();
     const horas = dataObj.getHours().toString().padStart(2, '0');
     const minutos = dataObj.getMinutes().toString().padStart(2, '0');
-
     const dataCriacao = `${dia} ${mesCapitalizado} ${ano} - ${horas}:${minutos}`;
 
-    const closeModal = () => {
-        setShowEditModal(false);
-    };
-    
-    const getImageSrc = (imagens: string | File | null) => {
-        if (!imagens) return '';
-        if (typeof imagens === 'string') return imagens; 
-        if (imagens instanceof File) return URL.createObjectURL(imagens); 
-        return '';
-    };
     return (
-        <IonPage className='detalhes-page'>
-            <IonHeader>
-                <IonToolbar
+      <IonPage>
+        <IonHeader>
+          <IonToolbar style={{ ["--background" as any]: "#FFF9E5", ["--color" as any]: "#004030" }}>
+            <img src={logo} alt="perfil" style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid #DCD0A8" }} />
+            <IonButtons slot="start">
+              <IonBackButton defaultHref="/market" />
+            </IonButtons>
+            <IonButtons slot="end">
+              <IonButton onClick={() => this.setState({ showEditModal: true })}><IonIcon icon={createSharp} /></IonButton>
+              <IonButton onClick={() => this.setState({ showDeleteAlert: true })}><IonIcon icon={trashBin} /></IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
 
-                    style={
-                        {
-                            ["--background" as any]: "#FFF9E5",
-                            ["--color" as any]: "#004030",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "6px 12px",
-                        } as React.CSSProperties
-                    }
-                >
-                    <img
-                        src={logo}
-                        alt="perfil"
-                        style={{
-                            borderRadius: "50%",
-                            width: 40,
-                            height: 40,
-                            border: "2px solid #DCD0A8",
-                            objectFit: "cover",
-                        }}
-                    />
+        <IonContent className="page-background page-detalhes">
+          <IonCard>
+            <IonCardHeader>
+              <IonCardTitle>{publicacao.title}</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <p>{publicacao.message}</p>
+              {publicacao.preco > 0 && <div><IonIcon icon={cashOutline} /> €{publicacao.preco.toFixed(2)}</div>}
+              {publicacao.imagens && <IonImg src={this.getImageSrc(publicacao.imagens)} />}
+              <div>Autor: {publicacao.author?.username || "Desconhecido"}</div>
+              <div>Criado em: {dataCriacao}</div>
+            </IonCardContent>
 
-                    <IonButtons slot="end">
-                        <IonButton fill="clear" href="/settings" >
-                            <IonIcon
-                                icon={settingsOutline}
-                                style={{ color: "#004030", fontSize: "24px" }}
-                            />
-                        </IonButton>
-                    </IonButtons>
-                    <IonButtons slot="start">
-                        <IonButton fill="clear" href="/market" >
-                            <IonIcon
-                                icon={arrowBack}
-                                style={{ color: "#004030", fontSize: "24px" }}
-                            />
-                        </IonButton>
-                    </IonButtons>
-                    <IonButtons slot="end">
-                        <>
-                            <IonButton onClick={() => setShowEditModal(true)} size='large'>
-                                <IonIcon icon={createSharp} slot="icon-only" />
-                            </IonButton>
-                            <IonButton onClick={() => setShowDeleteAlert(true)} size='large'>
-                                <IonIcon icon={trashBin} slot="icon-only" />
-                            </IonButton>
-                        </>
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
+            <IonCardContent>
+              <strong>Comentários:</strong>
+              {publicacao.comentarios?.map(c => (
+                <div key={c._id}>
+                  <span>{c.author.username}: {c.message}</span>
+                  <IonButton size="small" onClick={() => this.handleDeleteComment(c._id)}><IonIcon icon={trashBinOutline} /></IonButton>
+                </div>
+              ))}
+              {showCommentInput &&
+                <IonItem>
+                  <IonInput value={newComment} placeholder="Comente..." onIonInput={(e) => this.setState({ newComment: e.detail.value! })} />
+                  <IonButton onClick={this.handleSubmitComment}><IonIcon icon={sendSharp} /></IonButton>
+                </IonItem>
+              }
+              {!showCommentInput &&
+                <IonButton onClick={() => this.setState({ showCommentInput: true })}>Adicionar comentário</IonButton>
+              }
+            </IonCardContent>
+          </IonCard>
 
-            <IonContent className="page-background page-detalhes">
-                <IonCard className="card-container" style={{
-                    backgroundColor: "#DCD0A8",
-                    color: "#004030",
-                    borderRadius: "12px",
-                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                }}>
-                    <IonCardContent className="card-content">
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                        }}>
-                            <div className="tag-retangulo">
-                                {publicacao.publication_type}
-                            </div>
+          <IonAlert
+            isOpen={showDeleteAlert}
+            onDidDismiss={() => this.setState({ showDeleteAlert: false })}
+            header="Excluir publicação"
+            message="Deseja realmente deletar?"
+            buttons={[
+              { text: 'Não', role: 'cancel' },
+              { text: 'Sim', handler: this.handleDelete }
+            ]}
+          />
+        </IonContent>
 
+        <IonModal isOpen={showEditModal} onDidDismiss={() => this.setState({ showEditModal: false })}>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>Editar Publicação</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => this.setState({ showEditModal: false })}>Cancelar</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent>
+            <IonItem>
+              <IonInput name="title" value={publicacao.title} placeholder="Título" onIonInput={this.handleChange} />
+            </IonItem>
+            <IonItem>
+              <IonInput name="message" value={publicacao.message} placeholder="Mensagem" onIonInput={this.handleChange} />
+            </IonItem>
+            <IonItem>
+              <IonInput type="number" name="preco" value={publicacao.preco} placeholder="Preço (€)"
+                onIonInput={(e) => this.setState({ publicacao: { ...publicacao, preco: parseFloat(e.detail.value ?? "0") } })} />
+            </IonItem>
+            <IonItem>
+              <IonInput name="tags" value={publicacao.tags.join(", ")} placeholder="Tags"
+                onIonInput={(e) => this.setState({ publicacao: { ...publicacao, tags: e.detail.value?.split(",").map(t => t.trim()) ?? [] } })} />
+            </IonItem>
+            <IonItem>
+              <input type="file" onChange={this.handleFileChange} />
+            </IonItem>
+            <IonButton expand="block" onClick={this.handleSubmit}>Salvar</IonButton>
+          </IonContent>
+        </IonModal>
 
-                        </div>
-                    </IonCardContent>
-                    <IonCardHeader className="card-content" style={{ paddingTop: '0px' }}>
-                        <IonCardTitle className="card-header" style={{ marginTop: '0px' }}>{publicacao.title}</IonCardTitle>
-                    </IonCardHeader>
-
-                    <IonCardContent className="card-content">
-                        <p><strong></strong> {publicacao.message}</p>
-                    </IonCardContent>
-
-                    {publicacao.preco > 0 && (
-                        <IonCardContent className="card-content" style={{ marginTop: '-10px' }}>
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'flex-start',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    color: '#004030',
-                                    fontSize: '16px',
-                                    fontWeight: 'bold',
-                                }}
-                            >
-                                <IonIcon icon={cashOutline} style={{ fontSize: '20px', color: '#004030' }} />
-                                <span>
-                                    Preço:{' '}
-                                    {publicacao.preco && publicacao.preco > 0
-                                        ? `€${publicacao.preco.toFixed(2)}`
-                                        : 'Grátis'}
-                                </span>
-                            </div>
-                        </IonCardContent>
-                    )}
-                    {publicacao.imagens && (
-                        <IonCardContent style={{ marginTop: '-35px' }}>
-                            <div style={{ position: 'relative' }}>
-                                <IonImg
-                                    src={getImageSrc(publicacao.imagens)}
-                                    alt="Imagem da publicação"
-                                    style={{
-                                        width: '100%',
-                                        maxHeight: '200px',
-                                        height: '200px',
-                                        maxWidth: '600px',
-                                        margin: '0 auto',
-                                        display: 'block',
-                                        objectFit: 'contain',
-                                        borderRadius: '12px'
-                                    }}
-                                />
-                                <IonIcon
-                                    icon={chevronExpandOutline}
-                                    onClick={() => setShowImageModal(true)}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '10px',
-                                        right: '10px',
-                                        fontSize: '24px',
-                                        color: '#ffffffcc',
-                                        backgroundColor: '#004030',
-                                        borderRadius: '50%',
-                                        padding: '6px',
-                                        cursor: 'pointer'
-                                    }}
-                                />
-                            </div>
-                        </IonCardContent>
-
-                    )}
-
-                    <IonCardContent className="card-tags tags-conteudo" >
-                        <div className="tags-row" style={{ color: "#004030" }}>
-                            <strong>Tags:</strong>
-                            <div className="tags-grid">
-                                {Array.isArray(publicacao.tags) && publicacao.tags.length > 0 ? (
-                                    publicacao.tags.map((tag, index) => (
-                                        <IonChip key={index} color="primary" outline>
-                                            {tag}
-                                        </IonChip>
-                                    ))
-                                ) : (
-                                    <IonChip color="medium" outline>
-                                        Sem tags
-                                    </IonChip>
-                                )}
-                            </div>
-                        </div>
-                    </IonCardContent>
-                    <IonCardContent className="card-tags tags-conteudo">
-
-                    </IonCardContent>
-                    <IonCardContent>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: '0px',
-                                paddingBottom: '0px',
-                                paddingTop: '2px',
-                                fontSize: '14px',
-                                color: '#666',
-                                marginTop: '-10px',
-                                borderBottom: '2px solid #004030'
-                            }}
-                        >
-                            <span>Autor: {publicacao.author?.username || 'Desconhecido'}</span>
-                            <span className="data"> {dataCriacao}</span>
-                        </div>
-                    </IonCardContent>
-                    <IonCardContent>
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-
-                        }}>
-                            <strong>Comentários:</strong>
-                        </div>
-                        {publicacao.comentarios?.length > 0 ? (
-                            publicacao.comentarios.map((comentario: any) => {
-                                const dataComentario = new Date(comentario.createdAt);
-                                const dia = dataComentario.getDate();
-                                const mes = dataComentario.toLocaleString('pt-PT', { month: 'short' });
-                                const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
-                                const ano = dataComentario.getFullYear();
-                                const horaFormatada = dataComentario.toLocaleTimeString('pt-PT', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: false,
-                                });
-                                const dataFinal = `${dia} ${mesCapitalizado} ${ano} - ${horaFormatada}`;
-
-                                return (
-                                    <div key={comentario._id} className="comment-box">
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <strong className="comentario-autor">
-                                                {comentario.author?.username}{" "}
-                                                <span className="data2">
-                                                    ({dataFinal})
-                                                </span>
-                                            </strong>
-
-                                            {user && user._id && (
-                                                <div style={{ display: 'flex' }}>
-                                                    <IonButton fill="clear" size="small" color="primary" onClick={() => handleEditComment(comentario)}>
-                                                        <IonIcon icon={createOutline} slot="icon-only" />
-                                                    </IonButton>
-                                                    <IonButton fill="clear" size="small" color="danger" onClick={() => handleDeleteComment(comentario._id)}>
-                                                        <IonIcon icon={trashBinOutline} slot="icon-only" />
-                                                    </IonButton>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div style={{ marginTop: '4px' }}>
-                                            <p className="comentario-msg" style={{ margin: 0 }}>{comentario.message}</p>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <p>Sem comentários</p>
-                        )}
-                    </IonCardContent>
-                    {
-                        publicacao.publication_type === 'evento' && user.username !== publicacao.author.username && (
-                            <IonCardContent>
-                                <IonButton
-                                    expand="block"
-                                    fill="outline"
-                                    color={isParticipating ? 'danger' : 'success'}
-                                    shape="round"
-                                    onClick={() => {
-                                        if (isParticipating) {
-                                            setShowConfirmLeaveAlert(true);
-                                        } else {
-                                            setShowConfirmAlert(true);
-
-                                        }
-
-                                    }}
-                                >
-                                    <IonIcon icon={isParticipating ? sadOutline : happyOutline} slot="start" />
-                                    {isParticipating ? 'Cancelar participação' : 'Participar do Evento'}
-                                </IonButton>
-
-                            </IonCardContent>
-                        )
-                    }
-
-                    <IonCardContent>
-                        <div style={{
-                            paddingTop: '0px',
-                            marginTop: '-15px'
-                        }}>
-                            {!showCommentInput ? (
-                                <IonButton
-                                    expand="block"
-                                    fill="outline"
-                                    className="btn-adicionar-comentario"
-                                    shape="round"
-                                    onClick={() => setShowCommentInput(true)}
-                                >
-                                    <IonIcon icon={chatbubbleOutline} slot="start" />
-                                    Adicionar Comentário
-                                </IonButton>
-                            ) : (
-                                <>
-                                    <IonItem
-                                        className="comentario-input">
-                                        <IonInput
-                                            className="comentario-input"
-                                            placeholder="Escreva seu comentário..."
-                                            value={newComment}
-                                            onIonInput={(e) => setNewComment(e.detail.value!)}
-                                            onKeyDown={(e: any) => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    handleSubmitComment();
-                                                }
-                                            }}
-                                        />
-                                        <IonButton onClick={handleSubmitComment} color="#004030">
-                                            <IonIcon icon={sendSharp} />
-                                        </IonButton>
-                                    </IonItem>
-                                    <IonButton
-                                        expand="block"
-                                        fill="clear"
-                                        color="medium"
-                                        onClick={() => {
-                                            setNewComment("");
-                                            setEditCommentId(null);
-                                            setShowCommentInput(false);
-                                        }}
-                                    >
-                                        Cancelar
-                                    </IonButton>
-                                </>
-                            )}
-                        </div>
-
-                    </IonCardContent>
-                </IonCard>
-
-                <IonModal isOpen={showEditModal} onDidDismiss={closeModal}>
-                    <IonHeader>
-                        <IonToolbar style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                            <IonTitle>Editar Publicação</IonTitle>
-                            <IonButtons slot="end">
-                                <IonButton onClick={closeModal}>Cancelar</IonButton>
-                            </IonButtons>
-                        </IonToolbar>
-                    </IonHeader>
-
-                    <IonContent style={{ '--background': '#FFF9E5' }}>
-                        <IonGrid>
-                            <IonRow>
-                                <IonCol>
-                                    <IonList style={{ background: '#FFF9E5' }}>
-                                        <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                                            <IonInput
-                                                label="Título"
-                                                labelPlacement="stacked"
-                                                placeholder="Digite o título"
-                                                name="title"
-                                                value={publicacao.title}
-                                                onIonInput={handleChange}
-                                            />
-                                        </IonItem>
-
-                                        <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                                            <IonInput
-                                                label="Mensagem"
-                                                labelPlacement="stacked"
-                                                placeholder="Digite a mensagem"
-                                                name="message"
-                                                value={publicacao.message}
-                                                onIonInput={handleChange}
-                                            />
-                                        </IonItem>
-
-                                        <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                                            <IonInput
-                                                type="number"
-                                                label="Preço (€)"
-                                                labelPlacement="stacked"
-                                                placeholder="Digite o preço do produto"
-                                                name="preco"
-                                                value={publicacao.preco}
-                                                onIonInput={(e) => {
-                                                    const value = parseFloat(e.detail.value ?? "0");
-                                                    setPublicacao(prev => ({ ...prev, preco: isNaN(value) ? 0 : value }));
-                                                }}
-                                            />
-                                        </IonItem>
-
-                                        <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                                            <IonInput
-                                                label="Tags"
-                                                labelPlacement="stacked"
-                                                placeholder="Digite as tags separadas por vírgula"
-                                                name="tags"
-                                                value={Array.isArray(publicacao.tags) ? publicacao.tags.join(', ') : publicacao.tags}
-                                                onIonInput={(e) => {
-                                                    const newTags = e.detail.value
-                                                        ? e.detail.value.split(',').map(tag => tag.trim())
-                                                        : [];
-                                                    setPublicacao(prev => ({ ...prev, tags: newTags }));
-                                                }}
-                                            />
-                                        </IonItem>
-
-                                        <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                                            <label style={{ fontSize: '14px', color: '#004030' }}>
-                                                {publicacao.imagens ? 'Imagem carregada ✅' : 'Selecione uma imagem'}
-                                            </label>
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleFileChange}
-                                                style={{
-                                                    padding: "8px",
-                                                    width: "100%",
-                                                    border: "none",
-                                                    outline: "none",
-                                                    fontSize: "15px",
-                                                    color: "#004030"
-                                                }}
-                                            />
-                                        </IonItem>
-                                    </IonList>
-                                </IonCol>
-                            </IonRow>
-
-                            <IonRow>
-                                <IonCol>
-                                    <IonButton
-                                        expand="block"
-                                        onClick={handleSubmit}
-                                        style={{
-                                            '--background': '#004030',
-                                            '--color': '#FFF9E5',
-                                            '--background-activated': '#003020',
-                                            marginTop: '20px',
-                                            borderRadius: '10px'
-                                        }}
-                                    >
-                                        Guardar
-                                    </IonButton>
-                                </IonCol>
-                            </IonRow>
-                        </IonGrid>
-                    </IonContent>
-                </IonModal>
-
-                <IonModal
-                    isOpen={showQrModal}
-                    onDidDismiss={() => setShowQrModal(false)}
-                    breakpoints={[0, 0.5, 0.75]}
-                    initialBreakpoint={0.5}
-                >
-                    <div style={{
-                        background: "#fff",
-                        padding: "1.5rem",
-                        textAlign: "center",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center"
-                    }}>
-                        <h3 style={{ marginBottom: "1rem", color: "#000" }}>QR Code de Participação</h3>
-
-                        {qrData ? (
-                            <img src={qrData} alt="QR Code" style={{ width: '100%', maxWidth: '300px', margin: '0 auto' }} />
-                        ) : (
-                            <p style={{ color: "#333" }}>Carregando QR Code...</p>
-                        )}
-
-                        <IonButton
-                            expand="block"
-                            onClick={() => setShowQrModal(false)}
-                            style={{ marginTop: "1.5rem" }}
-                            color="primary"
-                        >
-                            Fechar
-                        </IonButton>
-                    </div>
-                </IonModal>
-                <IonAlert
-                    isOpen={showDeleteAlert}
-                    onDidDismiss={() => setShowDeleteAlert(false)}
-                    header={'excluir publicação'}
-                    message={'Queres mesmo apagar?'}
-                    buttons={[
-                        {
-                            text: 'Não',
-                            role: 'cancel',
-                            handler: handleCancel,
-                        },
-                        {
-                            text: 'Sim',
-                            handler: handleDelete,
-                        },
-                    ]}
-                />
-            </IonContent>
-            <IonModal className="custom-modal2"
-                isOpen={showImageModal}
-                onDidDismiss={() => setShowImageModal(false)}
-                initialBreakpoint={0.75}
-                breakpoints={[0, 0.5, 0.75, 1]}
-                handleBehavior="cycle"
-            >
-                <IonContent className="custom-modal2">
-                    <div className="custom-modal2">
-                        <img
-                            src={typeof publicacao.imagens === "string"
-                                ? publicacao.imagens
-                                : ''}
-                            style={{
-                                width: '100%',
-                                objectFit: 'contain',
-                                borderRadius: '8px',
-                            }}
-                            onClick={() => setShowImageModal(false)}
-                        />
-                    </div>
-                </IonContent>
-            </IonModal>
-        </IonPage>
-
+      </IonPage>
     );
-};
+  }
+}
 
 export default DetalhesPublicacao;

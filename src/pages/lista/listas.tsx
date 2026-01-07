@@ -28,7 +28,6 @@ import {
   IonGrid,
   IonRow,
   IonCol,
-  IonDatetime,
   IonTextarea
 } from "@ionic/react";
 import {
@@ -41,12 +40,11 @@ import {
   personOutline,
   leafOutline,
   addOutline,
-  bandageOutline,
-  arrowUndoOutline,
-  trashOutline
+  bandageOutline
 } from "ionicons/icons";
 import { searchCircleOutline } from 'ionicons/icons';
-import * as jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
+import { useHistory } from "react-router-dom";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -109,10 +107,10 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const AnimaisPage: React.FC = () => {
+  const history = useHistory();
   const [segment, setSegment] = useState("animais");
   const [animais, setAnimais] = useState<Animal[]>([]);
   const [plantacoes, setPlantacoes] = useState<Plantacao[]>([]);
-  // plantacao modal + mapa
   const [selectedPlantacao, setSelectedPlantacao] = useState<Plantacao | null>(null);
   const [showPlantacaoModal, setShowPlantacaoModal] = useState(false);
   const [plantacaoModalTab, setPlantacaoModalTab] = useState<'info' | 'mapa'>('info');
@@ -122,15 +120,6 @@ const AnimaisPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
   const toggleAccordion = () => setIsAccordionOpen(!isAccordionOpen);
-  const [showModal, setShowModal] = useState(false);
-  const [newAnimal, setNewAnimal] = useState<Partial<Animal>>({});
-  const [newPlantacao, setNewPlantacao] = useState<Partial<Plantacao>>({});
-  // add map editor state/refs for creating plantacao
-  const mapAddRef = useRef<HTMLDivElement | null>(null);
-  const mapAddInstanceRef = useRef<L.Map | null>(null);
-  const addMarkersRef = useRef<L.Marker[]>([]);
-  const [addPoints, setAddPoints] = useState<[number, number][]>([]);
-  const [pasteText, setPasteText] = useState<string>('');
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -161,50 +150,28 @@ const AnimaisPage: React.FC = () => {
   };
 
   // lê o cookie "auth" e tenta extrair o token JWT (suporta formatos: token directo, "name=token" ou JSON)
-  const getJwtFromAuthCookie = (): string | null => {
-    const raw = document.cookie.split(';').map(s => s.trim()).find(c => c.startsWith('auth='));
-    if (!raw) return null;
-    const val = decodeURIComponent(raw.substring(5)); // remove "auth="
-    const jwtMatch = val.match(/[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+/);
-    if (jwtMatch && jwtMatch[0]) return jwtMatch[0];
-    if (val.split('.').length === 3) return val;
-    return null;
-  };
-
-  // tenta obter userId do cookie (cliente) ou do servidor (/me)
-  const getUserIdFromCookieOrServer = async (): Promise<string | null> => {
-    // 1) tenta cookie no cliente
-    const token = getJwtFromAuthCookie();
-    if (token) {
-      try {
-        const decoded = (jwtDecode as any)(token);
-        return decoded?.user_id || decoded?.id || decoded?.sub || null;
-      } catch (e) {
-        console.warn('jwt-decode falhou:', e);
-      }
-    }
-
-    // 2) fallback: pedir ao servidor (usa cookie httpOnly)
-    try {
-      const res = await axios.get(`${API_BASE}/me`, { withCredentials: true });
-      // espere res.data ter algo como { user_id: '...' } ou { user: { _id: '...' } }
-      return res.data?.user_id || res.data?.id || res.data?._id || res.data?.user?._id || null;
-    } catch (err) {
-      console.warn('fallback /me falhou:', err);
-      return null;
-    }
+  const getToken = () => {
+    // Primeiro tenta cookie, depois localStorage
+    const match = document.cookie.match(/(^| )auth=([^;]+)/);
+    return match ? match[2] : localStorage.getItem("authToken");
   };
 
   const fetchAnimais = async () => {
     setLoading(true);
     setError(null);
     try {
-      const userId = await getUserIdFromCookieOrServer();
-      if (!userId) throw new Error('User ID não encontrado (auth cookie httpOnly ou ausente)');
-      const res = await axios.get(`${API_BASE}/animais/${userId}`, { withCredentials: true });
-      const payload = res.data;
-      const data = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : (payload.data ?? payload));
-      setAnimais(data);
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      console.log("Token obtido:", token);
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+      console.log("User ID extraído do token:", userId);
+      const res = await axios.get(`${API_BASE}/animais/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Dados dos animais recebidos:", res.data);
+      const animalsData: Animal[] = res.data.data || [];
+      setAnimais(animalsData);
     } catch (err: any) {
       console.error("Fetch animais erro:", err);
       const msg = err?.response?.data?.message || err.message || "Erro ao obter animais";
@@ -220,10 +187,13 @@ const AnimaisPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // usa o mesmo fallback (cookie decode ou /me) para obter userId
-      const userId = await getUserIdFromCookieOrServer();
-      if (!userId) throw new Error('User ID não encontrado (auth cookie httpOnly ou ausente)');
-      const res = await axios.get(`${API_BASE}/plantacoes/${userId}`, { withCredentials: true });
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+      const res = await axios.get(`${API_BASE}/plantacoes/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const payload = res.data;
       const data = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : (payload.data ?? payload));
       setPlantacoes(data);
@@ -262,66 +232,12 @@ const AnimaisPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      // obtém userId usando o helper (tenta cookie -> /me)
-      const userId = await getUserIdFromCookieOrServer();
-      if (!userId) throw new Error('User ID não encontrado (auth cookie httpOnly ou ausente)');
-
-      if (segment === 'animais') {
-        const animalData = {
-          ...newAnimal,
-          localizacaoX: 0,
-          localizacaoY: 0,
-          dono_id: userId
-        };
-
-        if (!animalData.nome || animalData.idade === undefined || !animalData.raca) {
-          alert('Por favor preencha todos os campos');
-          return;
-        }
-
-        await axios.post(`${API_BASE}/animais`, animalData, { withCredentials: true });
-        await fetchAnimais();
-        setShowModal(false);
-        setNewAnimal({});
-      } else {
-        const plantacaoData = {
-          ...newPlantacao,
-          localizacaoX: 0,
-          localizacaoY: 0,
-          dono_id: userId
-        };
-
-        if (!plantacaoData.planta) {
-          alert('Por favor preencha o nome da planta');
-          return;
-        }
-
-        await axios.post(`${API_BASE}/plantacoes`, plantacaoData, { withCredentials: true });
-        await fetchPlantacoes();
-        setShowModal(false);
-        setNewPlantacao({});
-      }
-    } catch (err: any) {
-      console.error('Erro ao salvar:', err);
-      if ((err?.message || '').toLowerCase().includes('user id') || (err?.message || '').toLowerCase().includes('token')) {
-        window.location.href = '/login';
-      } else {
-        alert(err?.response?.data?.message || err.message || 'Erro ao salvar');
-      }
-    }
-  };
-
   const handleAnimalClick = (animal: Animal) => {
-    setSelectedAnimal(animal);
-    setShowLocationModal(true);
+    history.push('/adicionar-animal', { animal });
   };
 
   const handlePlantacaoClick = (plant: Plantacao) => {
-    setSelectedPlantacao(plant);
-    setPlantacaoModalTab('info');
-    setShowPlantacaoModal(true);
+    history.push('/adicionar-plantacao', { plantacao: plant });
   };
 
   const createMap = () => {
@@ -363,7 +279,7 @@ const AnimaisPage: React.FC = () => {
       const history = (filterDate !== null) ? (filteredLocations ?? []) : (selectedAnimal.locationHistory ?? []);
 
       // sort (opcional) por timestamp asc
-      const historySorted = [...history].sort((a,b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+      const historySorted = [...history].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
       const points: L.LatLngExpression[] = [];
       // se não estamos a filtrar por dia podemos incluir a posição atual como primeiro ponto da linha
@@ -392,7 +308,7 @@ const AnimaisPage: React.FC = () => {
             opacity: 0.8,
             dashArray: '10, 10'
           }).addTo(map);
-          map.fitBounds(L.latLngBounds(points), { padding: [40,40] });
+          map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
         }
       }
 
@@ -447,14 +363,14 @@ const AnimaisPage: React.FC = () => {
         // Adiciona markers
         coords.forEach((c, i) => {
           const m = L.marker(c).addTo(map);
-          try { m.bindTooltip(String(i+1), { permanent: true, direction: 'center', className: 'map-seq-badge' }); } catch (e) {}
+          try { m.bindTooltip(String(i + 1), { permanent: true, direction: 'center', className: 'map-seq-badge' }); } catch (e) { }
         });
 
         // Ligações: para cada ponto, conecta aos 2 mais próximos
         if (coords.length > 1) {
           const pts = coords.map(c => ({ lat: Number((c as any)[0]), lng: Number((c as any)[1]) }));
-          const dist2 = (a: {lat:number,lng:number}, b: {lat:number,lng:number}) => {
-            const dx = a.lat - b.lat; const dy = a.lng - b.lng; return dx*dx + dy*dy;
+          const dist2 = (a: { lat: number, lng: number }, b: { lat: number, lng: number }) => {
+            const dx = a.lat - b.lat; const dy = a.lng - b.lng; return dx * dx + dy * dy;
           };
           for (let i = 0; i < pts.length; i++) {
             const dists: Array<{ idx: number; d: number }> = [];
@@ -462,7 +378,7 @@ const AnimaisPage: React.FC = () => {
               if (i === j) continue;
               dists.push({ idx: j, d: dist2(pts[i], pts[j]) });
             }
-            dists.sort((a,b) => a.d - b.d);
+            dists.sort((a, b) => a.d - b.d);
             const nearest = dists.slice(0, 2).map(x => x.idx);
             nearest.forEach(nidx => {
               L.polyline([[pts[i].lat, pts[i].lng], [pts[nidx].lat, pts[nidx].lng]], { color: '#4A9782', weight: 2, opacity: 0.9 }).addTo(map);
@@ -532,9 +448,9 @@ const AnimaisPage: React.FC = () => {
       return;
     }
     const start = new Date(parsed);
-    start.setHours(0,0,0,0);
+    start.setHours(0, 0, 0, 0);
     const end = new Date(parsed);
-    end.setHours(23,59,59,999);
+    end.setHours(23, 59, 59, 999);
 
     const filtered = (selectedAnimal.locationHistory ?? []).filter(loc => {
       const t = new Date(loc.at);
@@ -688,102 +604,7 @@ const AnimaisPage: React.FC = () => {
   }, [showPlantacaoModal, plantacaoModalTab, selectedPlantacao]);
 
   // helper: update map markers/polygon for add map
-  const updateAddMap = () => {
-    try {
-      const map = mapAddInstanceRef.current;
-      if (!map) return;
-      // remove old markers and non-tile layers
-      addMarkersRef.current.forEach(m => { try { map.removeLayer(m); } catch(e){} });
-      addMarkersRef.current = [];
-      // remove previously added overlay layers (if stored)
-      try {
-        const prev = (map as any)._agro_overlayLayers as L.Layer[] | undefined;
-        if (Array.isArray(prev)) {
-          prev.forEach(l => { try { map.removeLayer(l); } catch {} });
-        }
-      } catch (e) {}
-
-      map.eachLayer(layer => {
-        try {
-          // keep tile layers (base map). Only remove other overlay layers (markers, polylines, polygons)
-          if (layer instanceof L.TileLayer) return;
-        } catch (e) {
-          // fallback: if instanceof check fails in some envs, try to detect tile layers by _url
-          if ((layer as any)?._url) return;
-        }
-        try { map.removeLayer(layer); } catch (e) {}
-      });
-
-      const coords = addPoints.map(p => [p[0], p[1]] as L.LatLngExpression);
-      coords.forEach((c, i) => {
-        const m = L.marker(c).addTo(map);
-        // add small permanent tooltip badge showing index
-        try { m.bindTooltip(String(i+1), { permanent: true, direction: 'center', className: 'map-seq-badge' }); } catch (e) {}
-        addMarkersRef.current.push(m);
-      });
-
-      // remove any previous overlay lines/polygons (tile layers preserved above)
-      // We'll draw connections between each point and its two nearest neighbors
-      // First, compute simple nearest neighbors (O(n^2) is fine for small n)
-      const overlayLayers: L.Layer[] = [];
-      if (coords.length === 1) {
-        // Don't change zoom when adding a single point; just pan the map to the point
-        try {
-          map.panTo(coords[0]);
-        } catch (e) {
-          // fallback for any map errors: keep existing behavior but still try not to zoom
-          try { map.setView(coords[0], map.getZoom()); } catch (err) { /* ignore */ }
-        }
-      } else if (coords.length > 1) {
-        // compute NN for each point
-        const pts = coords.map(c => ({ lat: Number((c as any)[0]), lng: Number((c as any)[1]) }));
-
-        // helper distance^2
-        const dist2 = (a: {lat:number,lng:number}, b: {lat:number,lng:number}) => {
-          const dx = a.lat - b.lat; const dy = a.lng - b.lng; return dx*dx + dy*dy;
-        };
-
-        for (let i = 0; i < pts.length; i++) {
-          const dists: Array<{ idx: number; d: number }> = [];
-          for (let j = 0; j < pts.length; j++) {
-            if (i === j) continue;
-            dists.push({ idx: j, d: dist2(pts[i], pts[j]) });
-          }
-          dists.sort((a,b) => a.d - b.d);
-          const nearest = dists.slice(0, 2).map(x => x.idx);
-          // draw lines to nearest neighbors
-          nearest.forEach(nidx => {
-            const line = L.polyline([[pts[i].lat, pts[i].lng], [pts[nidx].lat, pts[nidx].lng]], { color: '#4A9782', weight: 2, opacity: 0.9 }).addTo(map);
-            overlayLayers.push(line);
-          });
-        }
-
-        // if 3 or more points, optionally draw a faint polygon to indicate area
-        if (coords.length >= 3) {
-          const poly = L.polygon(coords, { color: '#4A9782', weight: 1, fillOpacity: 0.04, opacity: 0.5 }).addTo(map);
-          overlayLayers.push(poly);
-        }
-
-        // Keep current zoom and pan to make sure points are visible.
-        // Using panInsideBounds avoids zoom changes while still ensuring map pans only if needed.
-        try {
-          // padding is not present on PanOptions in some Leaflet type definitions,
-          // so cast the options object to any to allow the padding property.
-          map.panInsideBounds(L.latLngBounds(coords), { padding: [20, 20] } as any);
-        } catch (e) {
-          // If panInsideBounds isn't available or fails, fall back to panTo center
-          try { map.panTo(L.latLngBounds(coords).getCenter()); } catch (err) { /* ignore */ }
-        }
-      }
-
-      // store overlayLayers in map (attach to map object) so we can remove them next update
-      try {
-        (map as any)._agro_overlayLayers = overlayLayers;
-      } catch (e) { /* ignore */ }
-    } catch (err) {
-      console.error('updateAddMap error', err);
-    }
-  };
+  // REMOVED: updateAddMap function
 
   // Remove any point that is inside the polygon formed by the other points,
   // or that sits (approximately) at the centroid of the other points.
@@ -803,13 +624,13 @@ const AnimaisPage: React.FC = () => {
       const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
       const lower: [number, number][] = [];
       for (const p of arr) {
-        while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
         lower.push(p);
       }
       const upper: [number, number][] = [];
       for (let i = arr.length - 1; i >= 0; i--) {
         const p = arr[i];
-        while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
         upper.push(p);
       }
       upper.pop(); lower.pop();
@@ -862,7 +683,7 @@ const AnimaisPage: React.FC = () => {
           if (!isNaN(cx) && !isNaN(cy)) {
             const dx = p[0] - cx;
             const dy = p[1] - cy;
-            if ((dx*dx + dy*dy) <= thr2) removed = true;
+            if ((dx * dx + dy * dy) <= thr2) removed = true;
           }
         }
 
@@ -880,211 +701,63 @@ const AnimaisPage: React.FC = () => {
     return current;
   };
 
-  // init map for adding points
-  const initAddMap = () => {
-    try {
-      if (!mapAddRef.current) return;
-      if (mapAddInstanceRef.current) {
-        try { mapAddInstanceRef.current.remove(); } catch { }
-        mapAddInstanceRef.current = null;
-        addMarkersRef.current = [];
-      }
-      mapAddRef.current.innerHTML = '';
-      const map = L.map(mapAddRef.current, { center: [0,0], zoom: 2, zoomControl: true });
-      mapAddInstanceRef.current = map;
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  // REMOVED: initAddMap function and related useEffect
 
-      // helper: point-in-polygon (ray-casting)
-      const pointInPolygon = (x: number, y: number, poly: [number, number][]) => {
-        let inside = false;
-        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-          const xi = poly[i][0], yi = poly[i][1];
-          const xj = poly[j][0], yj = poly[j][1];
-          const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 0.0) + xi);
-          if (intersect) inside = !inside;
-        }
-        return inside;
-      };
+  // REMOVED: clearAddPoints, undoLastPoint, pasteCoordsFromText functions
+  // distância mínima em metros entre pontos (evita overlap)
+  const MIN_DISTANCE = 3; // ajusta se quiseres
 
-      const degDistance2 = (a: [number, number], b: [number, number]) => {
-        const dx = a[0] - b[0];
-        const dy = a[1] - b[1];
-        return dx*dx + dy*dy;
-      };
+  function isPointTooClose(lat: number, lng: number, points: any[]) {
+    for (const p of points) {
+      const dist = Math.sqrt(
+        Math.pow(lat - p.lat, 2) + Math.pow(lng - p.lng, 2)
+      );
 
-      map.on('click', (e: any) => {
-        // Ignore click events that are part of a double-click (detail > 1)
-        try {
-          if (e && e.originalEvent && e.originalEvent.detail && e.originalEvent.detail > 1) {
-            return; // ignore double-click
-          }
-        } catch (err) { /* ignore */ }
-
-        const lat = Number(e.latlng.lat);
-        const lng = Number(e.latlng.lng);
-
-        // proximity threshold in degrees ~ approx (0.0001 deg ~ 11m)
-        const proximityThresholdDeg = 0.0001;
-
-        const candidate: [number, number] = [lat, lng];
-
-        // if close to existing point, ignore
-        for (const p of addPoints) {
-          if (degDistance2(p, candidate) <= proximityThresholdDeg * proximityThresholdDeg) {
-            // ignore silent
-            return;
-          }
-        }
-
-        // if there are >=3 points and candidate is strictly inside polygon, ignore
-        if (addPoints.length >= 3) {
-          const poly = addPoints.slice();
-          if (pointInPolygon(lat, lng, poly as [number, number][])) {
-            return;
-          }
-        }
-
-        setAddPoints(prev => {
-          const next = [...prev, candidate as [number, number]];
-          // sincroniza para enviar
-          setNewPlantacao(np => ({ ...np, pontosx: next.map(p => p[0]), pontosy: next.map(p => p[1]) }));
-          return next;
-        });
-      });
-
-      updateAddMap();
-    } catch (err) {
-      console.error('initAddMap error', err);
-    }
-  };
-
-  useEffect(() => {
-    // sanitize points: remove any that sit at the centroid of the others
-    try {
-      const cleaned = removeCentralPoints(addPoints);
-      if (cleaned.length !== addPoints.length) {
-        setAddPoints(cleaned);
-        // sync newPlantacao now so UI stays consistent (updateAddMap will run on next effect)
-        setNewPlantacao(np => ({ ...np, pontosx: cleaned.map(p => p[0]), pontosy: cleaned.map(p => p[1]) }));
-        return;
-      }
-    } catch (e) {
-      console.warn('removeCentralPoints failed', e);
-    }
-
-    updateAddMap();
-    // also sync newPlantacao in case addPoints changed externally
-    setNewPlantacao(np => ({ ...np, pontosx: addPoints.map(p => p[0]), pontosy: addPoints.map(p => p[1]) }));
-  }, [addPoints]);
-
-  // init/cleanup when opening/closing the add modal for plantacao
-  useEffect(() => {
-    if (showModal && segment === 'plantacoes') {
-      setTimeout(() => initAddMap(), 120);
-    }
-    if (!showModal && mapAddInstanceRef.current) {
-      try { mapAddInstanceRef.current.remove(); } catch (e) {}
-      mapAddInstanceRef.current = null;
-      addMarkersRef.current = [];
-      setAddPoints([]);
-    }
-  }, [showModal, segment]);
-
-  const clearAddPoints = () => {
-    setAddPoints([]);
-    setNewPlantacao(np => ({ ...np, pontosx: [], pontosy: [] }));
-    if (mapAddInstanceRef.current) {
-      mapAddInstanceRef.current.eachLayer(layer => {
-        try {
-          if (layer instanceof L.TileLayer) return;
-        } catch (e) {
-          if ((layer as any)?._url) return;
-        }
-        try { mapAddInstanceRef.current!.removeLayer(layer); } catch {}
-      });
-    }
-    addMarkersRef.current = [];
-  };
-
-  const undoLastPoint = () => {
-    setAddPoints(prev => {
-      const next = prev.slice(0, -1);
-      setNewPlantacao(np => ({ ...np, pontosx: next.map(p => p[0]), pontosy: next.map(p => p[1]) }));
-      return next;
-    });
-  };
-
-  const pasteCoordsFromText = (text: string) => {
-    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const parsed: [number, number][] = [];
-    for (const ln of lines) {
-      const sep = ln.includes(',') ? ',' : (ln.includes(';') ? ';' : ' ');
-      const parts = ln.split(sep).map(p => p.trim()).filter(Boolean);
-      if (parts.length >= 2) {
-        const a = Number(parts[0]);
-        const b = Number(parts[1]);
-        if (!isNaN(a) && !isNaN(b)) parsed.push([a, b]);
+      // como lat/lng não são metros, mas serve para impedir overlap no zoom
+      if (dist < 0.00003) {
+        return true;
       }
     }
-    if (parsed.length) {
-      setAddPoints(parsed);
-      setNewPlantacao(np => ({ ...np, pontosx: parsed.map(p => p[0]), pontosy: parsed.map(p => p[1]) }));
-    }
-  };
-// distância mínima em metros entre pontos (evita overlap)
-const MIN_DISTANCE = 3; // ajusta se quiseres
-
-function isPointTooClose(lat: number, lng: number, points: any[]) {
-  for (const p of points) {
-    const dist = Math.sqrt(
-      Math.pow(lat - p.lat, 2) + Math.pow(lng - p.lng, 2)
-    );
-
-    // como lat/lng não são metros, mas serve para impedir overlap no zoom
-    if (dist < 0.00003) { 
-      return true;
-    }
+    return false;
   }
-  return false;
-}
 
   return (
     <IonPage>
-        <IonHeader>
-          <IonToolbar
+      <IonHeader>
+        <IonToolbar
+          style={{
+            ["--background" as any]: "#FFF9E5",
+            ["--color" as any]: "#004030",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "6px 12px",
+          } as React.CSSProperties}
+        >
+          <img
+            src={logo}
+            alt="perfil"
             style={{
-              ["--background" as any]: "#FFF9E5",
-              ["--color" as any]: "#004030",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "6px 12px",
-            } as React.CSSProperties}
-          >
-            <img
-              src={logo}
-              alt="perfil"
-              style={{
-                borderRadius: "50%",
-                width: 40,
-                height: 40,
-                border: "2px solid #DCD0A8",
-                objectFit: "cover",
-              }}
-            />
+              borderRadius: "50%",
+              width: 40,
+              height: 40,
+              border: "2px solid #DCD0A8",
+              objectFit: "cover",
+            }}
+          />
 
-            <IonButtons slot="end">
-              <IonButton fill="clear" href="/settings">
-                <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
-              </IonButton>
-            </IonButtons>
-            <IonButtons slot="end" id="search">
-              <IonButton onClick={() => toggleAccordion()}>
-                <IonIcon icon={searchCircleOutline} size="large" />
-              </IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
+          <IonButtons slot="end">
+            <IonButton fill="clear" href="/settings">
+              <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
+            </IonButton>
+          </IonButtons>
+          <IonButtons slot="end" id="search">
+            <IonButton onClick={() => toggleAccordion()}>
+              <IonIcon icon={searchCircleOutline} size="large" />
+            </IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
 
       <IonContent>
         <IonSegment value={segment} onIonChange={(e: any) => {
@@ -1232,122 +905,7 @@ function isPointTooClose(lat: number, lng: number, points: any[]) {
         </IonGrid>
       </IonContent>
 
-      {/* Add Modal */}
-      <IonModal
-        isOpen={showModal}
-        onDidDismiss={() => {
-          setShowModal(false);
-          setAddPoints([]);
-          setNewPlantacao({});
-          if (mapAddInstanceRef.current) {
-            try { mapAddInstanceRef.current.remove(); } catch (e) { /* ignore */ }
-            mapAddInstanceRef.current = null;
-            addMarkersRef.current = [];
-          }
-        }}
-      >
-        <IonHeader>
-          <IonToolbar style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-            <IonTitle>{segment === 'animais' ? 'Novo Animal' : 'Nova Plantação'}</IonTitle>
-            <IonButtons slot="end">
-              <IonButton onClick={() => setShowModal(false)}>Cancelar</IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent style={{ '--background': '#FFF9E5' }}>
-          <IonGrid>
-            <IonRow>
-              <IonCol>
-                {segment === 'animais' ? (
-                  <IonList style={{ background: '#FFF9E5' }}>
-                    <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                      <IonInput
-                        label="Nome"
-                        labelPlacement="stacked"
-                        placeholder="Nome do animal"
-                        value={newAnimal.nome}
-                        debounce={0}
-                        onIonInput={e => setNewAnimal({ ...newAnimal, nome: e.detail.value! })}
-                        style={{ '--color': '#004030', '--placeholder-color': '#004030' }}
-                      />
-                    </IonItem>
-                    <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                      <IonInput
-                        label="Idade"
-                        labelPlacement="stacked"
-                        type="number"
-                        placeholder="Idade do animal"
-                        value={newAnimal.idade}
-                        debounce={0}
-                        onIonInput={e => setNewAnimal({ ...newAnimal, idade: Number(e.detail.value) })}
-                        style={{ '--color': '#004030', '--placeholder-color': '#004030' }}
-                      />
-                    </IonItem>
-                    <IonItem style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
-                      <IonInput
-                        label="Raça"
-                        labelPlacement="stacked"
-                        placeholder="Raça do animal"
-                        value={newAnimal.raca}
-                        debounce={0}
-                        onIonInput={e => setNewAnimal({ ...newAnimal, raca: e.detail.value! })}
-                        style={{ '--color': '#004030', '--placeholder-color': '#004030' }}
-                      />
-                    </IonItem>
-                  </IonList>
-                ) : (
-                  <IonList style={{ background: '#FFF9E5' }}>
-                    <IonItem>
-                      <IonInput
-                        label="ó nome"
-                        labelPlacement="stacked"
-                        placeholder="Nome da planta"
-                        value={newPlantacao.planta}
-                        debounce={0}
-                        onIonInput={e => setNewPlantacao({ ...newPlantacao, planta: e.detail.value! })}
-                      />
-                    </IonItem>
-                    <IonItem>
-                      <IonInput
-                        label="nome"
-                        labelPlacement="stacked"
-                        placeholder="nome ds plantação"
-                        value={(newPlantacao as any).nome}
-                        debounce={0}
-                        onIonInput={e => setNewPlantacao({ ...newPlantacao, nome: e.detail.value! })}
-                      />
-                    </IonItem>
-                    <div style={{ padding: 12 }}>
-                      <div style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
-                        <IonButton size="small" fill="clear" onClick={undoLastPoint} style={{ color: '#4A9782', minWidth: 0, padding: '0 8px' }}>
-                          <IonIcon icon={arrowUndoOutline} style={{ color: '#4A9782', fontSize: 22 }} />
-                        </IonButton>
-                        <IonButton size="small" fill="clear" onClick={clearAddPoints} style={{ color: '#4A9782', minWidth: 0, padding: '0 8px' }}>
-                          <IonIcon icon={trashOutline} style={{ color: '#4A9782', fontSize: 22 }} />
-                        </IonButton>
-                        <div style={{ flex: 1, textAlign: 'right', alignSelf: 'center', color: '#004030' }}>
-                          Pontos: {addPoints.length}
-                        </div>
-                      </div>
-                      <div ref={mapAddRef} id="map-add-container" style={{ width: '100%', minHeight: 300, borderRadius: 8, overflow: 'hidden' }} />
-                      <div style={{ marginTop: 8 }}>
-                        <IonLabel>Editor de pontos — clique no mapa para adicionar pins</IonLabel>
-                      </div>
-                    </div>
-                  </IonList>
-                )}
-              </IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol>
-                <IonButton expand="block" onClick={handleSubmit} style={{ '--background': '#004030', marginTop: '20px' }}>
-                  Salvar
-                </IonButton>
-              </IonCol>
-            </IonRow>
-          </IonGrid>
-        </IonContent>
-      </IonModal>
+      {/* Add Modal - REMOVED - Now using separate pages */}
 
       {/* Modal com várias tabs — 1: Info, 2: Mapa, 3: Remédios */}
       <IonModal
@@ -1593,7 +1151,7 @@ function isPointTooClose(lat: number, lng: number, points: any[]) {
           setSelectedPlantacao(null);
           // remove plant map
           if (mapInstanceRefPlant.current) {
-            
+
             try { mapInstanceRefPlant.current.remove(); } catch (e) { /* ignore */ }
             mapInstanceRefPlant.current = null;
           }
@@ -1630,7 +1188,7 @@ function isPointTooClose(lat: number, lng: number, points: any[]) {
               <h3 style={{ marginTop: 0 }}>{selectedPlantacao.planta}</h3>
 
               {/* Mostrar localização pontual (se existir) */}
-              
+
               {/* Se houver pontos do polígono, mostrar resumo (centro e número de vértices) */}
               {Array.isArray(selectedPlantacao.pontosx) && Array.isArray(selectedPlantacao.pontosy) && selectedPlantacao.pontosx.length > 0 && selectedPlantacao.pontosy.length > 0 ? (
                 (() => {
@@ -1658,27 +1216,21 @@ function isPointTooClose(lat: number, lng: number, points: any[]) {
 
       {/* Floating Action Button */}
       <IonButton
-        onClick={() => {
-          if (segment === 'animais') {
-            setShowModal(true);
-          } else if (segment === 'plantacoes') {
-            setShowModal(true);
-          }
+        routerLink={segment === 'animais' ? '/adicionar-animal' : '/adicionar-plantacao'}
+        style={{
+          position: 'fixed',
+          bottom: '80px', // above navbar
+          right: '20px',  // right side
+          '--border-radius': '50%',
+          '--padding-start': '0',
+          '--padding-end': '0',
+          width: '56px',
+          height: '56px',
+          '--background': '#004030',
+          '--background-activated': '#3A8772',
+          zIndex: 1000,
         }}
-         style={{
-           position: 'fixed',
-           bottom: '80px', // above navbar
-           right: '20px',  // right side
-           '--border-radius': '50%',
-           '--padding-start': '0',
-           '--padding-end': '0',
-           width: '56px',
-           height: '56px',
-           '--background': '#004030',
-           '--background-activated': '#3A8772',
-           zIndex: 1000,
-         }}
-       >
+      >
         <IonIcon
           icon={addOutline}
           style={{
@@ -1708,21 +1260,21 @@ function isPointTooClose(lat: number, lng: number, points: any[]) {
             gap: "6px",
             overflow: "hidden"        // evita overflow vertical/linhas extras
           }}>
-            <IonButton fill="clear" href="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+            <IonButton fill="clear" routerLink="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mapa</IonLabel>
               </div>
             </IonButton>
 
-            <IonButton fill="clear" href="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+            <IonButton fill="clear" routerLink="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Market</IonLabel>
               </div>
             </IonButton>
 
-            <IonButton fill="clear" href="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+            <IonButton fill="clear" routerLink="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lista</IonLabel>
@@ -1733,14 +1285,6 @@ function isPointTooClose(lat: number, lng: number, points: any[]) {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Veterinária</IonLabel>
-              </div>
-            </IonButton>
-
-
-            <IonButton fill="clear" href="/settings/conta" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={personOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Perfil</IonLabel>
               </div>
             </IonButton>
           </div>

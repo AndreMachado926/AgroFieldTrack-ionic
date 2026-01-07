@@ -1,15 +1,28 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { jwtDecode } from "jwt-decode";
 
-import * as jwtDecode from "jwt-decode";
-// Importar ícones padrão do leaflet
+import {
+    IonPage,
+    IonContent,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonFooter,
+    IonButton,
+    IonIcon,
+    IonLabel,
+    IonText,
+} from "@ionic/react";
+import { mapOutline, cartOutline, listOutline, personOutline, bandageOutline } from "ionicons/icons";
+
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
-import { IonButton, IonContent, IonFooter, IonIcon, IonLabel, IonPage, IonToolbar, IonHeader, IonButtons } from "@ionic/react";
-import { bandageOutline, cartOutline, listOutline, mapOutline, personOutline, searchCircleOutline, settingsOutline } from "ionicons/icons";
-import logo from "../lista/logo.png";
+
+axios.defaults.withCredentials = true;
+const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
 L.Marker.prototype.options.icon = L.icon({
     iconUrl: icon,
@@ -23,228 +36,131 @@ L.Marker.prototype.options.icon = L.icon({
 interface Animal {
     _id?: string;
     nome: string;
-    idade: number;
     raca?: string;
     localizacaoX?: number;
     localizacaoY?: number;
-    locationHistory?: Array<{ x: number; y: number; at: string }>;
 }
 
-const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
+interface DecodedToken {
+    user_id: string;
+    username: string;
+    iat: number;
+    exp: number;
+}
 
 const MapaAnimaisPage: React.FC = () => {
-    const [animais, setAnimais] = useState<Animal[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const mapRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
-    const [isAccordionOpen, setIsAccordionOpen] = useState(false);
 
-    const getJwtFromAuthCookie = (): string | null => {
-        const raw = document.cookie.split(';').map(s => s.trim()).find(c => c.startsWith('auth='));
-        if (!raw) return null;
-        const val = decodeURIComponent(raw.substring(5)); // remove "auth="
-        const jwtMatch = val.match(/[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+/);
-        if (jwtMatch && jwtMatch[0]) return jwtMatch[0];
-        if (val.split('.').length === 3) return val;
-        return null;
-    };
-    const getUserIdFromCookieOrServer = async (): Promise<string | null> => {
-        // 1) tenta cookie no cliente
-        const token = getJwtFromAuthCookie();
-        if (token) {
-            try {
-                const decoded = (jwtDecode as any)(token);
-                return decoded?.user_id || decoded?.id || decoded?.sub || null;
-            } catch (e) {
-                console.warn('jwt-decode falhou:', e);
-            }
-        }
+    const [animais, setAnimais] = useState<Animal[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-        // 2) fallback: pedir ao servidor (usa cookie httpOnly)
-        try {
-            const res = await axios.get(`${API_BASE}/me`, { withCredentials: true });
-            // espere res.data ter algo como { user_id: '...' } ou { user: { _id: '...' } }
-            return res.data?.user_id || res.data?.id || res.data?._id || res.data?.user?._id || null;
-        } catch (err) {
-            console.warn('fallback /me falhou:', err);
-            return null;
-        }
-    };
-    // Buscar animais do backend
-    const fetchAnimais = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const userId = await getUserIdFromCookieOrServer();
-            if (!userId) throw new Error('User ID não encontrado (auth cookie httpOnly ou ausente)');
-            const res = await axios.get(`${API_BASE}/animais/${userId}`, { withCredentials: true });
-            const data = res.data?.data ?? [];
-            setAnimais(data);
-        } catch (err: any) {
-            console.error("Erro ao buscar animais:", err);
-            setError(err?.response?.data?.message || "Erro ao carregar animais");
-            setAnimais([]);
-        } finally {
-            setLoading(false);
-        }
+    const getToken = () => {
+        // Primeiro tenta cookie, depois localStorage
+        const match = document.cookie.match(/(^| )auth=([^;]+)/);
+        return match ? match[2] : localStorage.getItem("authToken");
     };
 
-    // Criar o mapa e adicionar marcadores
-    const createMap = () => {
+    const createMap = (animals: Animal[]) => {
         if (!mapRef.current) return;
+        if (mapInstanceRef.current) mapInstanceRef.current.remove();
 
-        // Remove instância antiga
-        if (mapInstanceRef.current) {
-            try {
-                mapInstanceRef.current.remove();
-            } catch { }
-            mapInstanceRef.current = null;
-        }
-
-        const map = L.map(mapRef.current, {
-            center: [0, 0],
-            zoom: 2,
-            attributionControl: true,
-            zoomControl: true,
-        });
+        const map = L.map(mapRef.current, { center: [0, 0], zoom: 2 });
         mapInstanceRef.current = map;
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: "© OpenStreetMap contributors",
-        }).addTo(map);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
-        const points: L.LatLngExpression[] = [];
+        const bounds: L.LatLngExpression[] = [];
 
-        animais.forEach((animal) => {
-            if (animal.localizacaoX !== undefined && animal.localizacaoY !== undefined) {
+        animals.forEach(animal => {
+            if (animal.localizacaoX && animal.localizacaoY) {
                 const marker = L.marker([animal.localizacaoX, animal.localizacaoY]).addTo(map);
-                marker.bindPopup(`<strong>${animal.nome}</strong><br/>${animal.raca ?? "—"}<br/>${animal.idade} anos`);
-                points.push([animal.localizacaoX, animal.localizacaoY]);
+                marker.bindPopup(`<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}`);
+                bounds.push([animal.localizacaoX, animal.localizacaoY]);
             }
         });
 
-        if (points.length) {
-            map.fitBounds(L.latLngBounds(points), { padding: [50, 50] });
-        }
-
-        setTimeout(() => map.invalidateSize(), 200);
+        if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+        setTimeout(() => map.invalidateSize(), 300);
     };
 
-    // Buscar animais ao montar o componente
     useEffect(() => {
-        fetchAnimais();
-    }, []);
+        const init = async () => {
+            setLoading(true);
+            try {
+                const token = getToken();
+                if (!token) throw new Error("Não autenticado");
+                console.log("Token obtido:", token);
+                const decoded: DecodedToken = jwtDecode(token);
+                const userId = decoded.user_id;
+                console.log("User ID extraído do token:", userId);
+                const res = await axios.get(`${API_BASE}/animais/${userId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                console.log("Dados dos animais recebidos:", res.data);
+                const animalsData: Animal[] = res.data.data || [];
+                setAnimais(animalsData);
+                createMap(animalsData);
+            } catch (err) {
+                console.error(err);
+                setError("Sessão expirada ou inválida");
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    // Atualizar mapa sempre que os animais mudarem
-    useEffect(() => {
-        if (animais.length > 0) createMap();
-    }, [animais]);
+        init();
+    }, []);
 
     return (
         <IonPage>
             <IonHeader>
-                <IonToolbar
-                    style={{
-                        ["--background" as any]: "#FFF9E5",
-                        ["--color" as any]: "#004030",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "6px 12px",
-                    } as React.CSSProperties}
-                >
-                    <img
-                        src={logo}
-                        srcSet={`${logo} 1x, ${logo} 2x`}
-                        alt="perfil"
-                        width={40}
-                        height={40}
-                        style={{
-                            borderRadius: "50%",
-                            border: "2px solid #DCD0A8",
-                            objectFit: "cover",
-                            imageRendering: 'auto',
-                            WebkitFontSmoothing: 'antialiased'
-                        }}
-                    />
-
-                    <IonButtons slot="end">
-                        <IonButton fill="clear" href="/settings">
-                            <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
-                        </IonButton>
-                    </IonButtons>
-                    <IonButtons slot="end" id="search">
-                        <IonButton onClick={() => setIsAccordionOpen(!isAccordionOpen)}>
-                            <IonIcon icon={searchCircleOutline} size="large" />
-                        </IonButton>
-                    </IonButtons>
+                <IonToolbar>
+                    <IonTitle>Mapa de Animais</IonTitle>
                 </IonToolbar>
             </IonHeader>
+
             <IonContent fullscreen>
-                <div style={{ width: "100%", height: "100%", position: "relative" }}>
-                    {loading && (
-                        <p style={{ position: "absolute", top: 10, left: 10, zIndex: 1000 }}>Carregando...</p>
-                    )}
-                    {error && (
-                        <p style={{ position: "absolute", top: 10, left: 10, zIndex: 1000, color: "crimson" }}>{error}</p>
-                    )}
-                    <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
-                </div>
+                {loading && (
+                    <IonText>
+                        <p style={{ textAlign: "center" }}>A carregar mapa...</p>
+                    </IonText>
+                )}
+                {error && (
+                    <IonText color="danger">
+                        <p style={{ textAlign: "center" }}>{error}</p>
+                    </IonText>
+                )}
+
+                <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
             </IonContent>
 
             <IonFooter>
-                <IonToolbar
-                    style={{
-                        "--background": "#DCD0A8",
-                        "--border-color": "#DCD0A8",
-                        "--min-height": "64px",
-                        "--padding": "6px 6px"
-                    }}
-                >
-                    <div style={{
-                        display: "flex",
-                        flexWrap: "nowrap",        // forçar 1 linha
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        width: "100%",
-                        gap: "6px",
-                        overflow: "hidden"        // evita overflow vertical/linhas extras
-                    }}>
-                        <IonButton fill="clear" href="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mapa</IonLabel>
+                <IonToolbar style={{ "--background": "#DCD0A8", "--border-color": "#DCD0A8", "--min-height": "64px", "--padding": "6px 6px" }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 6 }}>
+                        <IonButton fill="clear" routerLink="/mapa" style={{ flex: '1 1 0', minWidth: 0 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: 18 }} />
+                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Mapa</IonLabel>
                             </div>
                         </IonButton>
-
-                        <IonButton fill="clear" href="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Market</IonLabel>
+                        <IonButton fill="clear" routerLink="/market" style={{ flex: '1 1 0', minWidth: 0 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: 18 }} />
+                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Market</IonLabel>
                             </div>
                         </IonButton>
-
-                        <IonButton fill="clear" href="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lista</IonLabel>
+                        <IonButton fill="clear" routerLink="/lista" style={{ flex: '1 1 0', minWidth: 0 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: 18 }} />
+                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Lista</IonLabel>
                             </div>
                         </IonButton>
-
-                        <IonButton fill="clear" routerLink="/veterinarios" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Veterinária</IonLabel>
-                            </div>
-                        </IonButton>
-
-
-                        <IonButton fill="clear" href="/settings/conta" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                                <IonIcon icon={personOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Perfil</IonLabel>
+                        <IonButton fill="clear" routerLink="/veterinarios" style={{ flex: '1 1 0', minWidth: 0 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: 18 }} />
+                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Veterinária</IonLabel>
                             </div>
                         </IonButton>
                     </div>
@@ -252,7 +168,6 @@ const MapaAnimaisPage: React.FC = () => {
             </IonFooter>
         </IonPage>
     );
-
 };
 
 export default MapaAnimaisPage;
