@@ -35,9 +35,10 @@ import {
   personOutline,
   leafOutline,
   bandageOutline,
-  addOutline,  // add this import
+  addOutline,
+  backspace,  // add this import
 } from "ionicons/icons";
-import * as jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 interface DecodedToken {
   user_id: string;
@@ -83,7 +84,7 @@ const VeterinariosPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [newVeterinario, setNewVeterinario] = useState<Partial<Veterinario>>({});
 
-  const API_BASE = ("https://agrofieldtrack-node-1yka.onrender.com").replace(/\/+$/,'');
+  const API_BASE = ("https://agrofieldtrack-node-1yka.onrender.com").replace(/\/+$/, '');
 
   const fetchVeterinarios = async () => {
     setLoading(true);
@@ -94,8 +95,8 @@ const VeterinariosPage: React.FC = () => {
       const rawList = Array.isArray(payload.data)
         ? payload.data
         : Array.isArray(payload)
-        ? payload
-        : payload.data ?? payload;
+          ? payload
+          : payload.data ?? payload;
 
       // normalizar campos do backend para o nosso tipo Veterinario
       const list = rawList.map((item: any) => ({
@@ -159,7 +160,7 @@ const VeterinariosPage: React.FC = () => {
           />
 
           <IonButtons slot="end">
-            <IonButton fill="clear"  href="/settings" >
+            <IonButton fill="clear" href="/settings" >
               <IonIcon
                 icon={settingsOutline}
                 style={{ color: "#004030", fontSize: "24px" }}
@@ -183,62 +184,116 @@ const VeterinariosPage: React.FC = () => {
         )}
 
         {veterinarios.map((vet, i) => (
-          <IonCard key={vet._id ?? vet.id ?? i} style={{
-            backgroundColor: "#DCD0A8",
-            borderRadius: "16px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-            marginBottom: "12px",
-          }}>
-            <IonItem lines="none" style={{
-              "--background": "#DCD0A8",
+          <IonCard
+            key={vet._id ?? vet.id ?? i}
+            style={{
+              backgroundColor: "#DCD0A8",
               borderRadius: "16px",
-              padding: "8px 4px",
-            }}>
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              marginBottom: "12px",
+              position: "relative" // 🔹 necessário para posicionar botão absoluto
+            }}
+          >
+            <IonItem
+              lines="none"
+              style={{
+                "--background": "#DCD0A8",
+                borderRadius: "16px",
+                padding: "8px 4px",
+              }}
+            >
               <IonAvatar slot="start">
-                <div style={{
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "50%",
-                  backgroundColor: "#4A9782",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  <IonIcon icon={bandageOutline} style={{ color: "#FFF9E5", fontSize: "20px" }} />
+                <div
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "50%",
+                    backgroundColor: "#4A9782",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <IonIcon
+                    icon={bandageOutline}
+                    style={{ color: "#FFF9E5", fontSize: "20px" }}
+                  />
                 </div>
               </IonAvatar>
 
               <IonLabel>
-                <h2 style={{
-                  fontWeight: 600,
-                  color: "#004030",
-                  fontSize: "15px",
-                  marginBottom: "2px",
-                }}>
+                <h2
+                  style={{
+                    fontWeight: 600,
+                    color: "#004030",
+                    fontSize: "15px",
+                    marginBottom: "2px",
+                  }}
+                >
                   {vet.nome}
                 </h2>
                 <p style={{ color: "#004030b0", fontSize: "13px", margin: 0 }}>
-                  {vet.especialidade || 'Sem especialidade'}
+                  {vet.especialidade || "Sem especialidade"}
                 </p>
                 {vet.email ? (
-                  <p style={{ color: "#004030b0", fontSize: "12px", marginTop: 4 }}>{vet.email}</p>
+                  <p
+                    style={{
+                      color: "#004030b0",
+                      fontSize: "12px",
+                      marginTop: 4,
+                    }}
+                  >
+                    {vet.email}
+                  </p>
                 ) : null}
               </IonLabel>
 
-              <IonNote slot="end" style={{
-                color: "#004030",
-                fontSize: "14px",
-                fontWeight: 500,
-              }}>
-                {vet.telefone || '—'}
+              <IonNote
+                slot="end"
+                style={{
+                  color: "#004030",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                }}
+              >
+                {vet.telefone || "—"}
               </IonNote>
             </IonItem>
+
+            {/* 🔹 Botão de Chat no canto inferior direito */}
+            <IonButton
+              fill="solid"
+              size="small"
+              style={{
+                position: "absolute",
+                bottom: "8px",
+                right: "8px",
+                fontSize: "12px",
+                padding: "4px 8px",
+                backgroundColor: "#004030",
+                color: "#FFF9E5",
+                zIndex: 10, // garante que fique acima do card
+              }}
+              onClick={() => {
+                const token = localStorage.getItem("authToken") || "";
+                const decoded: DecodedToken = jwtDecode(token);
+                const user1_id = decoded.user_id;
+                const user1_type = "user"; // ou "admin", dependendo do tipo do usuário logado
+                const user2_id = vet._id;
+                const user2_type = "veterinario";
+
+                // redireciona para a rota com os parâmetros
+                window.location.href = `/chat/${user1_id}/${user1_type}/${user2_id}/${user2_type}`;
+              }}
+            >
+              Chat
+            </IonButton>
           </IonCard>
         ))}
       </IonContent>
 
       {/* Floating Action Button */}
-      
+
 
       <IonFooter>
         <IonToolbar
@@ -258,21 +313,21 @@ const VeterinariosPage: React.FC = () => {
             gap: "6px",
             overflow: "hidden"        // evita overflow vertical/linhas extras
           }}>
-            <IonButton fill="clear" href="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+            <IonButton fill="clear" routerLink="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mapa</IonLabel>
               </div>
             </IonButton>
 
-            <IonButton fill="clear" href="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+            <IonButton fill="clear" routerLink="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Market</IonLabel>
               </div>
             </IonButton>
 
-            <IonButton fill="clear" href="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
+            <IonButton fill="clear" routerLink="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: "18px" }} />
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lista</IonLabel>
@@ -285,17 +340,10 @@ const VeterinariosPage: React.FC = () => {
                 <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Veterinária</IonLabel>
               </div>
             </IonButton>
-
-
-            <IonButton fill="clear" href="/settings/conta" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={personOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Perfil</IonLabel>
-              </div>
-            </IonButton>
           </div>
         </IonToolbar>
       </IonFooter>
+
     </IonPage>
   );
 };
