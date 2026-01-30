@@ -40,7 +40,8 @@ import {
   personOutline,
   leafOutline,
   addOutline,
-  bandageOutline
+  bandageOutline,
+  logOutOutline
 } from "ionicons/icons";
 import { searchCircleOutline } from 'ionicons/icons';
 import { jwtDecode } from "jwt-decode";
@@ -720,6 +721,16 @@ const AnimaisPage: React.FC = () => {
     }
     return false;
   }
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE}/logout`);
+    } catch (err) {
+      console.warn("Erro ao deslogar", err);
+    } finally {
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+    }
+  };
 
   return (
     <IonPage>
@@ -746,14 +757,15 @@ const AnimaisPage: React.FC = () => {
             }}
           />
 
-          <IonButtons slot="end">
+          <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
+            {/* Botão de Settings */}
             <IonButton fill="clear" href="/settings">
               <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
             </IonButton>
-          </IonButtons>
-          <IonButtons slot="end" id="search">
-            <IonButton onClick={() => toggleAccordion()}>
-              <IonIcon icon={searchCircleOutline} size="large" />
+
+            {/* Botão de Logout */}
+            <IonButton fill="clear" onClick={handleLogout}>
+              <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -1243,48 +1255,30 @@ const AnimaisPage: React.FC = () => {
 
       {/* MENU INFERIOR - UMA SÓ LINHA */}
       <IonFooter>
-        <IonToolbar
-          style={{
-            "--background": "#DCD0A8",
-            "--border-color": "#DCD0A8",
-            "--min-height": "64px",
-            "--padding": "6px 6px"
-          }}
-        >
-          <div style={{
-            display: "flex",
-            flexWrap: "nowrap",        // forçar 1 linha
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-            gap: "6px",
-            overflow: "hidden"        // evita overflow vertical/linhas extras
-          }}>
-            <IonButton fill="clear" routerLink="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mapa</IonLabel>
+        <IonToolbar style={{ "--background": "#DCD0A8", "--border-color": "#DCD0A8", "--min-height": "64px", "--padding": "6px 6px" }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 6 }}>
+            <IonButton fill="clear" routerLink="/mapa" style={{ flex: '1 1 0', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: 18 }} />
+                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Mapa</IonLabel>
               </div>
             </IonButton>
-
-            <IonButton fill="clear" routerLink="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Market</IonLabel>
+            <IonButton fill="clear" routerLink="/market" style={{ flex: '1 1 0', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: 18 }} />
+                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Market</IonLabel>
               </div>
             </IonButton>
-
-            <IonButton fill="clear" routerLink="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lista</IonLabel>
+            <IonButton fill="clear" routerLink="/lista" style={{ flex: '1 1 0', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: 18 }} />
+                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Lista</IonLabel>
               </div>
             </IonButton>
-
-            <IonButton fill="clear" routerLink="/veterinarios" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Veterinária</IonLabel>
+            <IonButton fill="clear" routerLink="/veterinarios" style={{ flex: '1 1 0', minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: 18 }} />
+                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Veterinária</IonLabel>
               </div>
             </IonButton>
           </div>
