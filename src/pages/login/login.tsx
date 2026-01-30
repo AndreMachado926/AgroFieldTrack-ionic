@@ -105,14 +105,6 @@ const Login: React.FC = () => {
               </a>
             </div>
 
-            <div style={{ textAlign: "center", marginTop: 5 }}>
-              <a
-                onClick={() => history.push("/fishwiki")}
-                style={{ color: "#5bbfa4ff", cursor: "pointer" }}
-              >
-                Entrar sem iniciar a sessão
-              </a>
-            </div>
           </div>
         </div>
       </IonContent>

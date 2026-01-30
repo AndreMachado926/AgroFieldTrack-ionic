@@ -15,8 +15,16 @@ import {
     IonIcon,
     IonLabel,
     IonText,
+    IonButtons,
 } from "@ionic/react";
-import { mapOutline, cartOutline, listOutline, personOutline, bandageOutline } from "ionicons/icons";
+import {
+    mapOutline,
+    cartOutline,
+    listOutline,
+    bandageOutline,
+    settingsOutline,
+    logOutOutline,
+} from "ionicons/icons";
 
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
@@ -57,7 +65,6 @@ const MapaAnimaisPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     const getToken = () => {
-        // Primeiro tenta cookie, depois localStorage
         const match = document.cookie.match(/(^| )auth=([^;]+)/);
         return match ? match[2] : localStorage.getItem("authToken");
     };
@@ -91,14 +98,11 @@ const MapaAnimaisPage: React.FC = () => {
             try {
                 const token = getToken();
                 if (!token) throw new Error("Não autenticado");
-                console.log("Token obtido:", token);
                 const decoded: DecodedToken = jwtDecode(token);
                 const userId = decoded.user_id;
-                console.log("User ID extraído do token:", userId);
                 const res = await axios.get(`${API_BASE}/animais/${userId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                console.log("Dados dos animais recebidos:", res.data);
                 const animalsData: Animal[] = res.data.data || [];
                 setAnimais(animalsData);
                 createMap(animalsData);
@@ -113,11 +117,34 @@ const MapaAnimaisPage: React.FC = () => {
         init();
     }, []);
 
+    const handleLogout = async () => {
+        try {
+            await axios.post(`${API_BASE}/logout`);
+        } catch (err) {
+            console.warn("Erro ao deslogar", err);
+        } finally {
+            localStorage.removeItem("authToken");
+            window.location.href = "/";
+        }
+    };
+
     return (
         <IonPage>
             <IonHeader>
                 <IonToolbar>
                     <IonTitle>Mapa de Animais</IonTitle>
+
+                    <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
+                        {/* Botão de Settings */}
+                        <IonButton fill="clear" href="/settings">
+                            <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
+                        </IonButton>
+
+                        {/* Botão de Logout */}
+                        <IonButton fill="clear" onClick={handleLogout}>
+                            <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
+                        </IonButton>
+                    </IonButtons>
                 </IonToolbar>
             </IonHeader>
 

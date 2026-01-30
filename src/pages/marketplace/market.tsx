@@ -19,8 +19,9 @@ import {
   IonCardContent,
   IonChip,
   IonBadge,
+  IonButtons,
 } from "@ionic/react";
-import { mapOutline, cartOutline, listOutline, personOutline, bandageOutline } from "ionicons/icons";
+import { mapOutline, cartOutline, listOutline, personOutline, bandageOutline, settingsOutline, logOutOutline } from "ionicons/icons";
 
 axios.defaults.withCredentials = true;
 const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
@@ -77,12 +78,34 @@ const MarketPage: React.FC = () => {
 
     fetchPublications();
   }, []);
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE}/logout`);
+    } catch (err) {
+      console.warn("Erro ao deslogar", err);
+    } finally {
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+    }
+  };
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
           <IonTitle>Market</IonTitle>
+          <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
+            {/* Botão de Settings */}
+            <IonButton fill="clear" href="/settings">
+              <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
+            </IonButton>
+
+            {/* Botão de Logout */}
+            <IonButton fill="clear" onClick={handleLogout}>
+              <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
+            </IonButton>
+          </IonButtons>
+
         </IonToolbar>
       </IonHeader>
 
