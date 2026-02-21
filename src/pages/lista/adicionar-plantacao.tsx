@@ -352,6 +352,43 @@ const AdicionarPlantacao: React.FC = () => {
         const match = document.cookie.match(/(^| )auth=([^;]+)/);
         return match ? match[2] : localStorage.getItem("authToken");
     };
+    const handleEditPlantacao = async () => {
+        try {
+            const token = getToken();
+            if (!token) throw new Error("Não autenticado");
+
+            if (!selectedPlantacao?._id) throw new Error("Plantação não selecionada para editar");
+            if (!plantacao.planta) { alert("Por favor preencha o nome da planta"); return; }
+            if (pins.length < 3) { alert("São necessários pelo menos 3 pontos"); return; }
+
+            // Preparar dados para enviar
+            const pontosx = pins.map(pin => pin.latlng.lat);
+            const pontosy = pins.map(pin => pin.latlng.lng);
+
+            const plantacaoData = {
+                id: selectedPlantacao._id,
+                nome: plantacao.nome || selectedPlantacao.nome,
+                planta: plantacao.planta,
+                pontosx,
+                pontosy
+            };
+
+            const response = await axios.post(`${API_BASE}/editplantacoes`, plantacaoData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data.success) {
+                alert("Plantação editada com sucesso!");
+                history.goBack();
+            } else {
+                alert(response.data.message || "Erro ao editar plantação");
+            }
+
+        } catch (err: any) {
+            console.error("Erro ao editar plantação:", err);
+            alert(err?.response?.data?.message || err.message || "Erro desconhecido");
+        }
+    };
 
     const handleSubmit = async () => {
         try {
@@ -474,7 +511,11 @@ const AdicionarPlantacao: React.FC = () => {
                             </div>
                         </IonCard>
 
-                        <IonButton expand="block" onClick={handleSubmit} style={{ "--background": "#004030", color: "#FFF9E5", margin: "20px" }}>
+                        <IonButton
+                            expand="block"
+                            onClick={selectedPlantacao?._id ? handleEditPlantacao : handleSubmit}
+                            style={{ "--background": "#004030", color: "#FFF9E5", margin: "20px" }}
+                        >
                             {selectedPlantacao ? "Atualizar Plantação" : "Salvar Plantação"}
                         </IonButton>
                     </>
