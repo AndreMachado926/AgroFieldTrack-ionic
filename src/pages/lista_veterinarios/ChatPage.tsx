@@ -14,7 +14,11 @@ import {
     IonIcon,
 } from "@ionic/react";
 import { arrowBackOutline } from "ionicons/icons";
+import { jwtDecode } from "jwt-decode";
 
+interface DecodedToken {
+    user_id: string;
+}
 interface Mensagem {
     sender_id: string;
     sender_type: string;
@@ -31,17 +35,22 @@ interface Chat {
 }
 
 const ChatPage: React.FC = () => {
-    const { user1_id, user2_id } = useParams<{
-        user1_id: string;
-        user2_id: string;
-    }>();
-
+    const { user2_id } = useParams<{ user2_id: string }>();
+    
     const [chat, setChat] = useState<Chat | null>(null);
     const [mensagens, setMensagens] = useState<Mensagem[]>([]);
     const [input, setInput] = useState("");
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const mensagensRef = useRef<Mensagem[]>([]);
 
+    const getToken = (): string | null => {
+        const match = document.cookie.match(/(^| )auth=([^;]+)/);
+        return match ? decodeURIComponent(match[2]) : localStorage.getItem("authToken");
+    };
+
+    const token = getToken();
+    const decoded = token ? jwtDecode<DecodedToken>(token) : null;
+    const user1_id = decoded ? decoded.user_id : null;
     const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
     // 🔹 scroll automático
@@ -51,6 +60,8 @@ const ChatPage: React.FC = () => {
 
     // 🔹 buscar ou criar chat
     useEffect(() => {
+        if (!user1_id || !user2_id) return;
+
         const fetchOrCreateChat = async () => {
             try {
                 const res = await axios.get(`${API_BASE}/chat/${user1_id}/${user2_id}`);
@@ -96,7 +107,7 @@ const ChatPage: React.FC = () => {
 
     // 🔹 enviar mensagem
     const sendMessage = async () => {
-        if (!input.trim() || !chat) return;
+        if (!input.trim() || !chat || !user1_id) return;
 
         const sender_type =
             user1_id === chat.user1_id ? chat.user1_type : chat.user2_type;

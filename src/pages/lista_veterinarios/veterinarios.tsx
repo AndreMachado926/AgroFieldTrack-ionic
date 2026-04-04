@@ -138,7 +138,6 @@ const VeterinariosPage: React.FC = () => {
       console.warn("Erro ao deslogar", err);
     } finally {
       localStorage.removeItem("authToken");
-      window.location.href = "/";
     }
   };
   const renderCard = (item: any, isContact = false) => (
@@ -202,11 +201,9 @@ const VeterinariosPage: React.FC = () => {
             zIndex: 10,
           }}
           onClick={() => {
-            if (!userId) return;
             const targetId = item._id;
-            window.location.href = `/chat/${userId}/${targetId}`;
-          }}
-        >
+            window.location.href = `/chat/${targetId}`;
+          }}        >
           Chat
         </IonButton>
       </IonItem>
