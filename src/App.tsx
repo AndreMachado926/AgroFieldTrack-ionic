@@ -50,7 +50,7 @@ const InnerApp: React.FC = () => {
 
   return (
     <IonApp>
-      <IonReactHashRouter>
+      <IonReactRouter>
         <IonRouterOutlet>
           <Switch>
 
@@ -66,12 +66,12 @@ const InnerApp: React.FC = () => {
             <Route exact path="/mapa" component={Mapa} />
             <Route exact path="/adicionar-animal" component={AdicionarAnimal} />
             <Route exact path="/adicionar-plantacao" component={AdicionarPlantacao} />
-            <Route exact path="/chat/:user1_id/:user2_id" component={ChatPage} />
+            <Route exact path="/chat/:user2_id" component={ChatPage} />
             <Route exact path="/contatos" component={ContatosPage} />
 
           </Switch>
         </IonRouterOutlet>
-      </IonReactHashRouter>
+      </IonReactRouter>
     </IonApp>
   );
 };
