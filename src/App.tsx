@@ -1,7 +1,6 @@
-import { Redirect, Route } from 'react-router-dom';
-import { Switch } from 'react-router-dom';
+import { Route, Switch } from 'react-router-dom';
 import { IonApp, IonRouterOutlet } from '@ionic/react';
-import { IonReactRouter } from '@ionic/react-router';
+import { IonReactHashRouter } from '@ionic/react-router';
 import Home from './pages/Home';
 
 import Login from './pages/login/login';
@@ -20,7 +19,6 @@ import AdicionarPlantacao from './pages/lista/adicionar-plantacao';
 import ChatPage from './pages/lista_veterinarios/ChatPage';
 import ContatosPage from './pages/lista_veterinarios/ContactsPage';
 import '@ionic/react/css/core.css';
-import { IonReactHashRouter } from '@ionic/react-router';
 
 /* Basic CSS for apps built with Ionic */
 import '@ionic/react/css/normalize.css';
@@ -50,7 +48,7 @@ const InnerApp: React.FC = () => {
 
   return (
     <IonApp>
-      <IonReactRouter>
+      <IonReactHashRouter>
         <IonRouterOutlet>
           <Switch>
 
@@ -71,7 +69,7 @@ const InnerApp: React.FC = () => {
 
           </Switch>
         </IonRouterOutlet>
-      </IonReactRouter>
+      </IonReactHashRouter>
     </IonApp>
   );
 };

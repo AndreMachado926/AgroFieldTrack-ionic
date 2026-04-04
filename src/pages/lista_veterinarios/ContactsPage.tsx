@@ -83,7 +83,7 @@ const ContactsPage: React.FC<Props> = ({ user_id, API_BASE }) => {
                 slot="end"
                 size="small"
                 onClick={() => {
-                  window.location.href = `/chat/${user_id}/${c._id}`;
+                  window.location.href = "/#/chat";
                 }}
               >
                 Chat

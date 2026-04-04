@@ -209,7 +209,7 @@ const VeterinariosPage: React.FC = () => {
             const targetId = item._id;
             if (!userId || !targetId) return;
             setChatCookie(userId, targetId);
-            window.location.href = "/chat";
+            window.location.href = "/#/chat";
           }}
         >
           Chat
