@@ -34,18 +34,41 @@ interface Chat {
     user2_type: string;
 }
 
+interface ChatCookie {
+    user1_id: string;
+    user2_id: string;
+}
+
 const ChatPage: React.FC = () => {
-    const { user2_id } = useParams<{ user2_id: string }>();
+    const { user2_id } = useParams<{ user2_id?: string }>();
     
     const [chat, setChat] = useState<Chat | null>(null);
     const [mensagens, setMensagens] = useState<Mensagem[]>([]);
     const [input, setInput] = useState("");
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const mensagensRef = useRef<Mensagem[]>([]);
+    const [chatUsers, setChatUsers] = useState<ChatCookie | null>(null);
 
     const getToken = (): string | null => {
         const match = document.cookie.match(/(^| )auth=([^;]+)/);
         return match ? decodeURIComponent(match[2]) : localStorage.getItem("authToken");
+    };
+
+    const getCookie = (name: string): string | null => {
+        const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+        return match ? decodeURIComponent(match[2]) : null;
+    };
+
+    const getChatUsers = (): ChatCookie | null => {
+        const raw = getCookie("chatUsers");
+        if (!raw) return null;
+        try {
+            const parsed = JSON.parse(raw);
+            if (parsed?.user1_id && parsed?.user2_id) return parsed;
+        } catch (err) {
+            console.error("Erro ao parsear cookie chatUsers:", err);
+        }
+        return null;
     };
 
     const token = getToken();
@@ -53,25 +76,32 @@ const ChatPage: React.FC = () => {
     const user1_id = decoded ? decoded.user_id : null;
     const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
+    const currentUserId = user1_id || chatUsers?.user1_id || null;
+    const chatUser2Id = chatUsers?.user2_id || user2_id || null;
+
     // 🔹 scroll automático
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [mensagens]);
 
+    useEffect(() => {
+        setChatUsers(getChatUsers());
+    }, []);
+
     // 🔹 buscar ou criar chat
     useEffect(() => {
-        if (!user1_id || !user2_id) return;
+        if (!currentUserId || !chatUser2Id) return;
 
         const fetchOrCreateChat = async () => {
             try {
-                const res = await axios.get(`${API_BASE}/chat/${user1_id}/${user2_id}`);
+                const res = await axios.get(`${API_BASE}/chat/${currentUserId}/${chatUser2Id}`);
                 setChat(res.data);
             } catch (err) {
                 console.error("Erro ao buscar/criar chat:", err);
             }
         };
         fetchOrCreateChat();
-    }, [user1_id, user2_id]);
+    }, [currentUserId, chatUser2Id]);
 
     // 🔹 buscar mensagens antigas
     useEffect(() => {
@@ -107,14 +137,14 @@ const ChatPage: React.FC = () => {
 
     // 🔹 enviar mensagem
     const sendMessage = async () => {
-        if (!input.trim() || !chat || !user1_id) return;
+        if (!input.trim() || !chat || !currentUserId) return;
 
         const sender_type =
-            user1_id === chat.user1_id ? chat.user1_type : chat.user2_type;
+            currentUserId === chat.user1_id ? chat.user1_type : chat.user2_type;
 
         try {
             await axios.post(`${API_BASE}/chat/${chat._id}`, {
-                sender_id: user1_id,
+                sender_id: currentUserId,
                 sender_type,
                 text: input,
             });
@@ -122,7 +152,7 @@ const ChatPage: React.FC = () => {
             setMensagens((prev) => [
                 ...prev,
                 {
-                    sender_id: user1_id,
+                    sender_id: currentUserId,
                     sender_type,
                     text: input,
                     createdAt: new Date().toISOString(),
@@ -174,7 +204,7 @@ const ChatPage: React.FC = () => {
                             key={i}
                             style={{
                                 marginBottom: "8px",
-                                textAlign: m.sender_id === user1_id ? "right" : "left",
+                                textAlign: m.sender_id === currentUserId ? "right" : "left",
                             }}
                         >
                             <span
@@ -182,8 +212,8 @@ const ChatPage: React.FC = () => {
                                     display: "inline-block",
                                     padding: "6px 10px",
                                     borderRadius: "12px",
-                                    backgroundColor: m.sender_id === user1_id ? "#4A9782" : "#DCD0A8",
-                                    color: m.sender_id === user1_id ? "#FFF9E5" : "#004030",
+                                    backgroundColor: m.sender_id === currentUserId ? "#4A9782" : "#DCD0A8",
+                                    color: m.sender_id === currentUserId ? "#FFF9E5" : "#004030",
                                     maxWidth: "70%",
                                     wordWrap: "break-word",
                                     fontSize: "14px",

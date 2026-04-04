@@ -51,6 +51,11 @@ const VeterinariosPage: React.FC = () => {
 
   const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
+  const setChatCookie = (user1Id: string, user2Id: string) => {
+    const value = encodeURIComponent(JSON.stringify({ user1_id: user1Id, user2_id: user2Id }));
+    document.cookie = `chatUsers=${value}; path=/; sameSite=Lax`;
+  };
+
   // 🔹 pegar id do usuário do token
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -202,8 +207,11 @@ const VeterinariosPage: React.FC = () => {
           }}
           onClick={() => {
             const targetId = item._id;
-            window.location.href = `/chat/${targetId}`;
-          }}        >
+            if (!userId || !targetId) return;
+            setChatCookie(userId, targetId);
+            window.location.href = "/chat";
+          }}
+        >
           Chat
         </IonButton>
       </IonItem>
