@@ -759,7 +759,7 @@ const AnimaisPage: React.FC = () => {
 
           <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
             {/* Botão de Settings */}
-            <IonButton fill="clear" href="/settings">
+            <IonButton fill="clear" href="/#/settings">
               <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
             </IonButton>
 

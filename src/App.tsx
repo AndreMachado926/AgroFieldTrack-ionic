@@ -18,6 +18,7 @@ import AdicionarAnimal from './pages/lista/adicionar-animal';
 import AdicionarPlantacao from './pages/lista/adicionar-plantacao';
 import ChatPage from './pages/lista_veterinarios/ChatPage';
 import ContatosPage from './pages/lista_veterinarios/ContactsPage';
+import VeterinarioContatosPage from './pages/veterinario/contactos'; // nova página de contatos para veterinários
 import '@ionic/react/css/core.css';
 
 /* Basic CSS for apps built with Ionic */
@@ -66,6 +67,7 @@ const InnerApp: React.FC = () => {
             <Route exact path="/adicionar-plantacao" component={AdicionarPlantacao} />
             <Route exact path="/chat" component={ChatPage} />
             <Route exact path="/contatos" component={ContatosPage} />
+            <Route exact path="/veterinario/contatos" component={VeterinarioContatosPage} />
 
           </Switch>
         </IonRouterOutlet>

@@ -150,19 +150,12 @@ const Conta: React.FC = () => {
         <IonToolbar style={{ "--background": "#FFF9E5", "--color": "#004030", display: "flex", justifyContent: "space-between", padding: "6px 12px" }}>
           {/* Botão de voltar no canto esquerdo */}
           <IonButtons slot="start">
-            <IonButton fill="clear" href="/settings">
+            <IonButton fill="clear" href="/#/settings">
               <IonIcon icon={arrowBackOutline} style={{ color: "#004030", fontSize: 24 }} />
             </IonButton>
           </IonButtons>
 
           <IonTitle>Perfil</IonTitle>
-
-          {/* Botão de settings no canto direito */}
-          <IonButtons slot="end">
-            <IonButton fill="clear" href="/settings">
-              <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: 24 }} />
-            </IonButton>
-          </IonButtons>
         </IonToolbar>
       </IonHeader>
 
