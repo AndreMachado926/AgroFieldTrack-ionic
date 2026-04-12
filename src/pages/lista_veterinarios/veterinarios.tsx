@@ -120,11 +120,20 @@ const VeterinariosPage: React.FC = () => {
     const fetchContacts = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${API_BASE}/chats/contacts/${userId}`);
-        const contatos: Contact[] = (res.data || []).map((c: Contact) => ({
-          ...c,
-          type: c.type === "user" ? "cliente" : c.type,
-        }));
+        const res = await axios.get(`${API_BASE}/veterinarios/${userId}/chats`);
+        const chats = res.data?.data || [];
+
+        const contatos: Contact[] = chats.map((chat: any) => {
+          const otherUser = String(chat.user1_id._id) === userId ? chat.user2_id : chat.user1_id;
+          return {
+            _id: otherUser._id,
+            username: otherUser.username || otherUser.nome_completo || otherUser.nome || "Sem nome",
+            email: otherUser.email || "",
+            telefone: otherUser.telefone || otherUser.phone || "",
+            type: otherUser.type === "user" ? "cliente" : otherUser.type,
+          };
+        });
+
         setContacts(contatos);
       } catch (err) {
         console.error("Erro ao buscar contatos:", err);
@@ -238,7 +247,7 @@ const VeterinariosPage: React.FC = () => {
           />
           <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
             {/* Botão de Settings */}
-            <IonButton fill="clear" href="/settings">
+            <IonButton fill="clear" href="/#/settings">
               <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
             </IonButton>
 

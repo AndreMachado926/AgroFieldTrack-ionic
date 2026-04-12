@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { io, Socket } from "socket.io-client";
 import {
     IonPage,
     IonHeader,
@@ -15,6 +16,7 @@ import {
 } from "@ionic/react";
 import { arrowBackOutline } from "ionicons/icons";
 import { jwtDecode } from "jwt-decode";
+import "./ChatPage.css";
 
 interface DecodedToken {
     user_id: string;
@@ -45,8 +47,10 @@ const ChatPage: React.FC = () => {
     const [chat, setChat] = useState<Chat | null>(null);
     const [mensagens, setMensagens] = useState<Mensagem[]>([]);
     const [input, setInput] = useState("");
+    const [chatLoading, setChatLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const mensagensRef = useRef<Mensagem[]>([]);
+    const socketRef = useRef<Socket | null>(null);
     const [chatUsers, setChatUsers] = useState<ChatCookie | null>(null);
 
     const getToken = (): string | null => {
@@ -79,6 +83,22 @@ const ChatPage: React.FC = () => {
     const currentUserId = user1_id || chatUsers?.user1_id || null;
     const chatUser2Id = chatUsers?.user2_id || user2_id || null;
 
+    const fetchOrCreateChat = async (): Promise<Chat | null> => {
+        if (!currentUserId || !chatUser2Id) return null;
+
+        setChatLoading(true);
+        try {
+            const res = await axios.get(`${API_BASE}/chat/${currentUserId}/${chatUser2Id}`);
+            setChat(res.data);
+            return res.data;
+        } catch (err) {
+            console.error("Erro ao buscar/criar chat:", err);
+            return null;
+        } finally {
+            setChatLoading(false);
+        }
+    };
+
     // 🔹 scroll automático
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -88,20 +108,48 @@ const ChatPage: React.FC = () => {
         setChatUsers(getChatUsers());
     }, []);
 
+    useEffect(() => {
+        const socket = io(API_BASE, {
+            transports: ["websocket"],
+            auth: { token },
+            withCredentials: true,
+        });
+
+        socketRef.current = socket;
+
+        socket.on("connect", () => {
+            console.log("Socket conectado:", socket.id);
+        });
+
+        socket.on("new-message", (message: Mensagem) => {
+            setMensagens((prev) => [...prev, message]);
+        });
+
+        socket.on("connect_error", (err) => {
+            console.error("Erro de conexão websocket:", err);
+        });
+
+        return () => {
+            socket.disconnect();
+            socketRef.current = null;
+        };
+    }, [API_BASE, token]);
+
     // 🔹 buscar ou criar chat
     useEffect(() => {
         if (!currentUserId || !chatUser2Id) return;
-
-        const fetchOrCreateChat = async () => {
-            try {
-                const res = await axios.get(`${API_BASE}/chat/${currentUserId}/${chatUser2Id}`);
-                setChat(res.data);
-            } catch (err) {
-                console.error("Erro ao buscar/criar chat:", err);
-            }
-        };
         fetchOrCreateChat();
     }, [currentUserId, chatUser2Id]);
+
+    const canSend = !!input.trim() && !!currentUserId && !!chat && !chatLoading;
+
+    useEffect(() => {
+        if (!chat?._id || !socketRef.current || !currentUserId) return;
+        socketRef.current.emit("join-chat", {
+            chatId: chat._id,
+            userId: currentUserId,
+        });
+    }, [chat?._id, currentUserId]);
 
     // 🔹 buscar mensagens antigas
     useEffect(() => {
@@ -131,34 +179,44 @@ const ChatPage: React.FC = () => {
         };
 
         fetchMessages();
-        const interval = setInterval(fetchMessages, 2000);
-        return () => clearInterval(interval);
     }, [chat?._id]);
 
     // 🔹 enviar mensagem
     const sendMessage = async () => {
-        if (!input.trim() || !chat || !currentUserId) return;
+        if (!input.trim() || !currentUserId) return;
+
+        const currentChat = chat || await fetchOrCreateChat();
+        if (!currentChat) return;
 
         const sender_type =
-            currentUserId === chat.user1_id ? chat.user1_type : chat.user2_type;
+            currentUserId === currentChat.user1_id ? currentChat.user1_type : currentChat.user2_type;
 
-        try {
-            await axios.post(`${API_BASE}/chat/${chat._id}`, {
+        const message: Mensagem = {
+            sender_id: currentUserId,
+            sender_type,
+            text: input,
+            createdAt: new Date().toISOString(),
+        };
+
+        if (socketRef.current?.connected) {
+            socketRef.current.emit("send-message", {
+                chatId: currentChat._id,
                 sender_id: currentUserId,
                 sender_type,
                 text: input,
             });
+            setMensagens((prev) => [...prev, message]);
+            setInput("");
+            return;
+        }
 
-            setMensagens((prev) => [
-                ...prev,
-                {
-                    sender_id: currentUserId,
-                    sender_type,
-                    text: input,
-                    createdAt: new Date().toISOString(),
-                },
-            ]);
-
+        try {
+            await axios.post(`${API_BASE}/chat/${currentChat._id}`, {
+                sender_id: currentUserId,
+                sender_type,
+                text: input,
+            });
+            setMensagens((prev) => [...prev, message]);
             setInput("");
         } catch (err) {
             console.error("Erro ao enviar mensagem:", err);
@@ -166,62 +224,33 @@ const ChatPage: React.FC = () => {
     };
 
     return (
-        <IonPage>
+        <IonPage className="chat-page">
             <IonHeader>
-                <IonToolbar style={{ "--background": "#004030" } as React.CSSProperties}>
+                <IonToolbar className="chat-toolbar">
                     {/* 🔹 Botão de voltar */}
                     <IonButtons slot="start">
                         <IonButton routerLink="/veterinarios" fill="clear">
-                            <IonIcon icon={arrowBackOutline} style={{ color: "#FFF9E5", fontSize: "24px" }} />
+                            <IonIcon icon={arrowBackOutline} className="back-icon" />
                         </IonButton>
                     </IonButtons>
 
-                    <IonTitle style={{ color: "#FFF9E5" }}>Chat</IonTitle>
+                    <IonTitle className="chat-title">Chat</IonTitle>
                 </IonToolbar>
 
             </IonHeader>
 
-            <IonContent
-                style={{
-                    padding: "16px",
-                    display: "flex",
-                    flexDirection: "column",
-                }}
-            >
+            <IonContent className="chat-content">
                 {/* mensagens */}
-                <div
-                    style={{
-                        flex: 1,
-                        overflowY: "auto",
-                        borderRadius: "8px",
-                        padding: "8px",
-                        marginBottom: "16px",
-                        backgroundColor: "#f9f9f9",
-                    }}
-                >
+                <div className="message-list">
                     {mensagens.map((m, i) => (
                         <div
                             key={i}
-                            style={{
-                                marginBottom: "8px",
-                                textAlign: m.sender_id === currentUserId ? "right" : "left",
-                            }}
+                            className={`message-row ${m.sender_id === currentUserId ? "message-self" : "message-other"}`}
                         >
-                            <span
-                                style={{
-                                    display: "inline-block",
-                                    padding: "6px 10px",
-                                    borderRadius: "12px",
-                                    backgroundColor: m.sender_id === currentUserId ? "#4A9782" : "#DCD0A8",
-                                    color: m.sender_id === currentUserId ? "#FFF9E5" : "#004030",
-                                    maxWidth: "70%",
-                                    wordWrap: "break-word",
-                                    fontSize: "14px",
-                                }}
-                            >
+                            <span className="message-bubble">
                                 {m.text}
                             </span>
-                            <div style={{ fontSize: "10px", color: "#999" }}>
+                            <div className="message-time">
                                 {new Date(m.createdAt).toLocaleString()}
                             </div>
                         </div>
@@ -230,25 +259,21 @@ const ChatPage: React.FC = () => {
                 </div>
 
                 {/* input */}
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div className="chat-input-row">
                     <IonInput
+                        className="chat-input"
                         value={input}
                         placeholder="Digite sua mensagem"
                         onIonChange={(e) => setInput(e.detail.value ?? "")}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") sendMessage();
-                        }}
-                        style={{
-                            flex: 1,
-                            border: "1px solid #ccc",
-                            borderRadius: "8px",
-                            padding: "6px 8px",
+                            if (e.key === "Enter" && canSend) sendMessage();
                         }}
                     />
                     <IonButton
                         type="button"
+                        className="chat-send-button"
                         onClick={sendMessage}
-                        style={{ "--background": "#004030", color: "#FFF9E5" }}
+                        disabled={!canSend}
                     >
                         Enviar
                     </IonButton>
