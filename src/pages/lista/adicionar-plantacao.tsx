@@ -26,7 +26,7 @@ import {
     personOutline,
     bandageOutline
 } from "ionicons/icons";
-import { useHistory, useLocation } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -62,6 +62,7 @@ L.Marker.prototype.options.icon = L.icon({
 const AdicionarPlantacao: React.FC = () => {
     const history = useHistory();
     const location = useLocation();
+    const { id } = useParams<{ id?: string }>();
 
     const distance = (a: L.LatLng, b: L.LatLng) => a.distanceTo(b);
 
@@ -113,6 +114,7 @@ const AdicionarPlantacao: React.FC = () => {
 
     const [tab, setTab] = useState<"edit" | "details">("edit");
     const [selectedPlantacao, setSelectedPlantacao] = useState<Plantacao | null>(null);
+    const [loading, setLoading] = useState(false);
 
     const mapRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
@@ -130,18 +132,37 @@ const AdicionarPlantacao: React.FC = () => {
 
     // Carregar plantação selecionada
     useEffect(() => {
-        const state = location.state as { plantacao?: Plantacao };
-        if (state?.plantacao) {
-            setSelectedPlantacao(state.plantacao);
+        if (id) {
+            fetchPlantacao(id);
+        }
+    }, [id]);
+
+    const fetchPlantacao = async (plantId: string) => {
+        setLoading(true);
+        try {
+            const token = getToken();
+            if (!token) throw new Error("Não autenticado");
+
+            const response = await axios.get(`${API_BASE}/plantacoes/${plantId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const plant = response.data;
+            setSelectedPlantacao(plant);
             setPlantacao({
-                planta: state.plantacao.planta,
-                nome: state.plantacao.nome || "",
-                pontosx: state.plantacao.pontosx || [],
-                pontosy: state.plantacao.pontosy || []
+                planta: plant.planta,
+                nome: plant.nome || "",
+                pontosx: plant.pontosx || [],
+                pontosy: plant.pontosy || []
             });
             setTab("details");
+        } catch (err: any) {
+            console.error("Erro ao buscar plantação:", err);
+            alert(err?.response?.data?.message || err.message || "Erro ao carregar plantação");
+        } finally {
+            setLoading(false);
         }
-    }, [location.state]);
+    };
 
     useEffect(() => {
         return () => {
@@ -406,7 +427,14 @@ const AdicionarPlantacao: React.FC = () => {
             const plantacaoData = { ...plantacao, localizacaoX: pontosx[0] || 0, localizacaoY: pontosy[0] || 0, pontosx, pontosy, dono_id: userId };
 
             if (selectedPlantacao?._id) {
-                await axios.put(`${API_BASE}/plantacoes/${selectedPlantacao._id}`, plantacaoData, { headers: { Authorization: `Bearer ${token}` } });
+                const editData = {
+                    id: selectedPlantacao._id,
+                    nome: plantacao.nome,
+                    planta: plantacao.planta,
+                    pontosx,
+                    pontosy
+                };
+                await axios.post(`${API_BASE}/editplantacoes`, editData, { headers: { Authorization: `Bearer ${token}` } });
                 alert("Plantação atualizada com sucesso!");
             } else {
                 await axios.post(`${API_BASE}/plantacoes`, plantacaoData, { headers: { Authorization: `Bearer ${token}` } });

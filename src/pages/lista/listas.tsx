@@ -192,7 +192,7 @@ const AnimaisPage: React.FC = () => {
       if (!token) throw new Error("Não autenticado");
       const decoded: DecodedToken = jwtDecode(token);
       const userId = decoded.user_id;
-      const res = await axios.get(`${API_BASE}/plantacoes/${userId}`, {
+      const res = await axios.get(`${API_BASE}/plantacoes/user/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const payload = res.data;
@@ -238,7 +238,7 @@ const AnimaisPage: React.FC = () => {
   };
 
   const handlePlantacaoClick = (plant: Plantacao) => {
-    history.push('/adicionar-plantacao', { plantacao: plant });
+    history.push(`/adicionar-plantacao/${plant._id}`);
   };
 
   const createMap = () => {
