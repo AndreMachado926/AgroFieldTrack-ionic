@@ -13,19 +13,34 @@ import {
     IonButton,
     IonButtons,
     IonIcon,
+    IonModal,
+    IonList,
+    IonItem,
+    IonLabel,
 } from "@ionic/react";
-import { arrowBackOutline } from "ionicons/icons";
+import { arrowBackOutline, attachOutline } from "ionicons/icons";
 import { jwtDecode } from "jwt-decode";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import "./ChatPage.css";
 
 interface DecodedToken {
     user_id: string;
+}
+interface AnimalInfo {
+    _id: string;
+    nome: string;
+    idade: number;
+    raca: string;
+    localizacaoX: number;
+    localizacaoY: number;
 }
 interface Mensagem {
     sender_id: string;
     sender_type: string;
     text: string;
     createdAt: string;
+    animal_id?: string | AnimalInfo;
 }
 
 interface Chat {
@@ -48,6 +63,12 @@ const ChatPage: React.FC = () => {
     const [mensagens, setMensagens] = useState<Mensagem[]>([]);
     const [input, setInput] = useState("");
     const [chatLoading, setChatLoading] = useState(false);
+    const [animals, setAnimals] = useState<AnimalInfo[]>([]);
+    const [showAnimalModal, setShowAnimalModal] = useState(false);
+    const [animalsLoading, setAnimalsLoading] = useState(false);
+    const [animalsError, setAnimalsError] = useState<string | null>(null);
+    const [showMapModal, setShowMapModal] = useState(false);
+    const [selectedAnimalForMap, setSelectedAnimalForMap] = useState<AnimalInfo | null>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const mensagensRef = useRef<Mensagem[]>([]);
     const socketRef = useRef<Socket | null>(null);
@@ -99,10 +120,128 @@ const ChatPage: React.FC = () => {
         }
     };
 
-    // 🔹 scroll automático
+    const fetchAnimals = async () => {
+        if (!currentUserId) return;
+
+        setAnimalsLoading(true);
+        setAnimalsError(null);
+        try {
+            const token = getToken();
+            if (!token) throw new Error("Não autenticado");
+
+            const res = await axios.get(`${API_BASE}/animais/${currentUserId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const payload = res.data;
+            const data: AnimalInfo[] = Array.isArray(payload.data)
+                ? payload.data
+                : Array.isArray(payload)
+                ? payload
+                : payload.data
+                    ? payload.data
+                    : [];
+            setAnimals(data);
+        } catch (err: any) {
+            console.error("Erro ao buscar animais:", err);
+            setAnimals([]);
+            setAnimalsError(err?.response?.data?.message || err.message || "Erro ao obter animais");
+        } finally {
+            setAnimalsLoading(false);
+        }
+    };
+
+    const sendAnimalInfo = async (animal: AnimalInfo) => {
+        if (!currentUserId) return;
+
+        const currentChat = chat || await fetchOrCreateChat();
+        if (!currentChat) return;
+
+        const sender_type =
+            currentUserId === currentChat.user1_id ? currentChat.user1_type : currentChat.user2_type;
+
+        const messagePayload = {
+            sender_id: currentUserId,
+            sender_type,
+            text: "",
+            animal_id: animal._id,
+        };
+
+        const token = getToken();
+
+        console.log("sendAnimalInfo payload:", messagePayload); // Debug log
+
+        try {
+            // SEMPRE usar axios para garantir que a mensagem é guardada na DB
+            await axios.post(
+                `${API_BASE}/chat/${currentChat._id}`,
+                messagePayload,
+                {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                }
+            );
+
+            console.log("Animal enviado com sucesso para DB"); // Debug log
+
+            // Buscar mensagens atualizadas para garantir sincronização
+            await new Promise(resolve => setTimeout(resolve, 300)); // pequeno delay para garantir que o servidor processou
+
+            const messagesRes = await axios.get(`${API_BASE}/chat/${currentChat._id}/messages`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const updatedMessages: Mensagem[] = messagesRes.data || [];
+            console.log("Mensagens atualizadas:", updatedMessages); // Debug log
+            mensagensRef.current = updatedMessages;
+            setMensagens(updatedMessages);
+            setShowAnimalModal(false);
+        } catch (err: any) {
+            console.error("Erro ao enviar informações do animal:", err);
+            console.error("Dados enviados:", messagePayload); // Debug log do payload
+            alert("Erro ao enviar animal: " + (err?.response?.data?.message || err.message));
+        }
+    };
+
+    const openLocationMap = (animal: AnimalInfo) => {
+        setSelectedAnimalForMap(animal);
+        setShowMapModal(true);
+    };
+
+    const createLocationMap = () => {
+        if (!selectedAnimalForMap) return;
+
+        setTimeout(() => {
+            const mapContainer = document.getElementById("location-map");
+            if (!mapContainer) return;
+
+            // Limpar mapa anterior se existir
+            const existingMap = (mapContainer as any)._leaflet_map;
+            if (existingMap) {
+                existingMap.remove();
+            }
+
+            const map = L.map("location-map").setView(
+                [selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY],
+                13
+            );
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: '&copy; OpenStreetMap contributors',
+            }).addTo(map);
+
+            L.marker([selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY])
+                .addTo(map)
+                .bindPopup(`<b>${selectedAnimalForMap.nome}</b><br>${selectedAnimalForMap.raca}`);
+        }, 100);
+    };
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [mensagens]);
+
+    useEffect(() => {
+        if (showMapModal) {
+            createLocationMap();
+        }
+    }, [showMapModal]);
 
     useEffect(() => {
         setChatUsers(getChatUsers());
@@ -141,6 +280,11 @@ const ChatPage: React.FC = () => {
         fetchOrCreateChat();
     }, [currentUserId, chatUser2Id]);
 
+    useEffect(() => {
+        if (!currentUserId) return;
+        fetchAnimals();
+    }, [currentUserId]);
+
     const canSend = !!input.trim() && !!currentUserId && !!chat && !chatLoading;
 
     useEffect(() => {
@@ -162,12 +306,22 @@ const ChatPage: React.FC = () => {
 
                 const igual =
                     novasMensagens.length === mensagensRef.current.length &&
-                    novasMensagens.every((m, i) =>
-                        m.sender_id === mensagensRef.current[i].sender_id &&
-                        m.sender_type === mensagensRef.current[i].sender_type &&
-                        m.text === mensagensRef.current[i].text &&
-                        m.createdAt === mensagensRef.current[i].createdAt
-                    );
+                    novasMensagens.every((m, i) => {
+                        const previous = mensagensRef.current[i];
+                        const animalEqual =
+                            m.animal_id === previous.animal_id ||
+                            (typeof m.animal_id !== "string" &&
+                                typeof previous.animal_id !== "string" &&
+                                m.animal_id?._id === previous.animal_id?._id);
+
+                        return (
+                            m.sender_id === previous.sender_id &&
+                            m.sender_type === previous.sender_type &&
+                            m.text === previous.text &&
+                            m.createdAt === previous.createdAt &&
+                            animalEqual
+                        );
+                    });
 
                 if (!igual) {
                     mensagensRef.current = novasMensagens;
@@ -247,8 +401,26 @@ const ChatPage: React.FC = () => {
                             key={i}
                             className={`message-row ${m.sender_id === currentUserId ? "message-self" : "message-other"}`}
                         >
-                            <span className="message-bubble">
-                                {m.text}
+                                    <span className="message-bubble">
+                                {m.animal_id && typeof m.animal_id !== "string" ? (
+                                    <div className="animal-card">
+                                        <div className="animal-card-title">Informações do animal</div>
+                                        <div style={{ color: "#000" }}><strong>Nome:</strong> {m.animal_id.nome}</div>
+                                        <div style={{ color: "#000" }}><strong>Idade:</strong> {m.animal_id.idade}</div>
+                                        <div style={{ color: "#000" }}><strong>Raça:</strong> {m.animal_id.raca}</div>
+                                        <IonButton
+                                            type="button"
+                                            fill="outline"
+                                            size="small"
+                                            onClick={() => openLocationMap(m.animal_id as AnimalInfo)}
+                                            style={{ marginTop: "8px" }}
+                                        >
+                                            Ver localização
+                                        </IonButton>
+                                    </div>
+                                ) : (
+                                    m.text
+                                )}
                             </span>
                             <div className="message-time">
                                 {new Date(m.createdAt).toLocaleString()}
@@ -260,6 +432,15 @@ const ChatPage: React.FC = () => {
 
                 {/* input */}
                 <div className="chat-input-row">
+                    <IonButton
+                        type="button"
+                        fill="clear"
+                        className="chat-attach-button"
+                        onClick={() => setShowAnimalModal(true)}
+                        disabled={!currentUserId || animals.length === 0}
+                    >
+                        <IonIcon icon={attachOutline} />
+                    </IonButton>
                     <IonInput
                         className="chat-input"
                         value={input}
@@ -278,6 +459,47 @@ const ChatPage: React.FC = () => {
                         Enviar
                     </IonButton>
                 </div>
+                <IonModal isOpen={showAnimalModal} onDidDismiss={() => setShowAnimalModal(false)}>
+                    <IonHeader>
+                        <IonToolbar>
+                            <IonTitle>Enviar animal</IonTitle>
+                            <IonButtons slot="end">
+                                <IonButton onClick={() => setShowAnimalModal(false)}>Fechar</IonButton>
+                            </IonButtons>
+                        </IonToolbar>
+                    </IonHeader>
+                    <IonContent>
+                        {animalsLoading && <p style={{ padding: 16 }}>Carregando animais...</p>}
+                        {animalsError && <p style={{ padding: 16, color: 'crimson' }}>{animalsError}</p>}
+                        {!animalsLoading && animals.length === 0 && !animalsError && (
+                            <p style={{ padding: 16 }}>Nenhum animal disponível para enviar.</p>
+                        )}
+                        <IonList>
+                            {animals.map((animal) => (
+                                <IonItem key={animal._id} button onClick={() => sendAnimalInfo(animal)}>
+                                    <IonLabel>
+                                        <h2>{animal.nome}</h2>
+                                        <p>{`${animal.raca} • ${animal.idade} anos`}</p>
+                                        <p>{`Localização: ${animal.localizacaoX}, ${animal.localizacaoY}`}</p>
+                                    </IonLabel>
+                                </IonItem>
+                            ))}
+                        </IonList>
+                    </IonContent>
+                </IonModal>
+                <IonModal isOpen={showMapModal} onDidDismiss={() => setShowMapModal(false)}>
+                    <IonHeader>
+                        <IonToolbar>
+                            <IonTitle>Localização - {selectedAnimalForMap?.nome}</IonTitle>
+                            <IonButtons slot="end">
+                                <IonButton onClick={() => setShowMapModal(false)}>Fechar</IonButton>
+                            </IonButtons>
+                        </IonToolbar>
+                    </IonHeader>
+                    <IonContent>
+                        <div id="location-map" style={{ width: "100%", height: "100%" }} />
+                    </IonContent>
+                </IonModal>
             </IonContent>
         </IonPage>
     );

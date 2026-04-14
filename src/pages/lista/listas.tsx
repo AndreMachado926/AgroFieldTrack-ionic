@@ -41,7 +41,8 @@ import {
   leafOutline,
   addOutline,
   bandageOutline,
-  logOutOutline
+  logOutOutline,
+  shareOutline
 } from "ionicons/icons";
 import { searchCircleOutline } from 'ionicons/icons';
 import { jwtDecode } from "jwt-decode";
@@ -123,6 +124,10 @@ const AnimaisPage: React.FC = () => {
   const toggleAccordion = () => setIsAccordionOpen(!isAccordionOpen);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareChats, setShareChats] = useState<any[]>([]);
+  const [selectedAnimalToShare, setSelectedAnimalToShare] = useState<Animal | null>(null);
+  const [loadingChats, setLoadingChats] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
   // guarda a instância do leaflet para poder remover/recriar sem erro
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -192,11 +197,27 @@ const AnimaisPage: React.FC = () => {
       if (!token) throw new Error("Não autenticado");
       const decoded: DecodedToken = jwtDecode(token);
       const userId = decoded.user_id;
-      const res = await axios.get(`${API_BASE}/plantacoes/user/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      let res;
+
+      try {
+        res = await axios.get(`${API_BASE}/plantacoes/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (firstErr: any) {
+        console.warn('Falha ao usar /plantacoes/:id, tentando endpoint /plantacoes/user/:user_id', firstErr?.message || firstErr);
+        res = await axios.get(`${API_BASE}/plantacoes/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
       const payload = res.data;
-      const data = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : (payload.data ?? payload));
+      const data = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.data)
+        ? payload.data
+        : payload.data
+        ? [payload.data]
+        : [payload];
       setPlantacoes(data);
     } catch (err: any) {
       console.error("Fetch plantações erro:", err);
@@ -233,8 +254,91 @@ const AnimaisPage: React.FC = () => {
     }
   };
 
-  const handleAnimalClick = (animal: Animal) => {
-    history.push('/adicionar-animal', { animal });
+  // Fetch chats for share modal
+  const fetchChatsForShare = async () => {
+    setLoadingChats(true);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+      
+      const res = await axios.get(`${API_BASE}/users/${userId}/contacts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setShareChats(res.data || []);
+    } catch (err: any) {
+      console.error('Erro ao buscar chats:', err);
+      setShareChats([]);
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+  // Send animal to a specific chat
+  const sendAnimalToChat = async (chatUser: any) => {
+    try {
+      if (!selectedAnimalToShare || !selectedAnimalToShare._id) return;
+
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+
+      // Get or create chat
+      const chatRes = await axios.get(`${API_BASE}/chat/${userId}/${chatUser._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const chat = chatRes.data;
+
+      // Send animal as message
+      const messagePayload = {
+        sender_id: userId,
+        sender_type: "user",
+        text: "",
+        animal_id: selectedAnimalToShare._id,
+      };
+
+      await axios.post(`${API_BASE}/chat/${chat._id}`, messagePayload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      alert("Animal partilhado com sucesso!");
+      setShowShareModal(false);
+      setSelectedAnimalToShare(null);
+    } catch (err: any) {
+      console.error('Erro ao partilhar animal:', err);
+      alert("Erro ao partilhar animal: " + (err?.response?.data?.message || err.message));
+    }
+  };
+
+  const handleAnimalClick = async (animal: Animal) => {
+    try {
+      console.log("Clicou no animal:", animal);
+      
+      if (!animal._id) {
+        console.warn("Animal sem _id, usando dados locais");
+        history.push('/adicionar-animal', { animal });
+        return;
+      }
+
+      // Buscar dados frescos do animal
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      
+      console.log("Buscando dados frescos do animal ID:", animal._id);
+      const res = await axios.get(`${API_BASE}/getanimalbyyd/${animal._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const freshAnimal = res.data.data;
+      console.log("Dados frescos do animal recebidos:", freshAnimal);
+      
+      history.push('/adicionar-animal', { animal: freshAnimal });
+    } catch (err: any) {
+      console.error('Erro ao buscar animal:', err);
+      alert('Erro ao carregar dados do animal: ' + (err?.response?.data?.message || err.message));
+    }
   };
 
   const handlePlantacaoClick = (plant: Plantacao) => {
