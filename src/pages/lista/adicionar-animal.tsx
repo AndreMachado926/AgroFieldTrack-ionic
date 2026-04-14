@@ -30,7 +30,7 @@ import {
   personOutline,
   bandageOutline
 } from "ionicons/icons";
-import { useHistory, useLocation } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -64,6 +64,7 @@ L.Marker.prototype.options.icon = L.icon({
 const AdicionarAnimal: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
+  const { id } = useParams<{ id?: string }>();
   const locationState = location.state as { animal?: Animal } | undefined;
   
   const [animal, setAnimal] = useState<Partial<Animal>>(() => {
@@ -81,20 +82,41 @@ const AdicionarAnimal: React.FC = () => {
     };
   });
 
-  // Atualizar quando o location muda
-  useEffect(() => {
-    if (locationState?.animal) {
-      console.log("Atualizando dados do animal:", locationState.animal);
-      setAnimal(locationState.animal);
-    }
-  }, [locationState]);
-
   // lê o cookie "auth" e tenta extrair o token JWT (suporta formatos: token directo, "name=token" ou JSON)
   const getToken = () => {
     // Primeiro tenta cookie, depois localStorage
     const match = document.cookie.match(/(^| )auth=([^;]+)/);
     return match ? match[2] : localStorage.getItem("authToken");
   };
+
+  // Se há ID na URL, buscar dados frescos do servidor
+  useEffect(() => {
+    const fetchAnimalData = async () => {
+      try {
+        if (!id) return; // Se não há ID, é novo animal
+
+        console.log("Buscando dados frescos do animal ID:", id);
+        const token = getToken();
+        if (!token) throw new Error("Não autenticado");
+        
+        const res = await axios.get(`${API_BASE}/getanimalbyyd/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        const freshAnimal = res.data.data;
+        console.log("Dados frescos do animal recebidos no adicionar-animal:", freshAnimal);
+        setAnimal(freshAnimal);
+      } catch (err: any) {
+        console.error('Erro ao buscar dados do animal:', err);
+        // Fallback: usa dados do state se disponível
+        if (locationState?.animal) {
+          setAnimal(locationState.animal);
+        }
+      }
+    };
+
+    fetchAnimalData();
+  }, [id]);
 
   const handleSubmit = async () => {
     try {
@@ -152,7 +174,7 @@ const AdicionarAnimal: React.FC = () => {
               <IonIcon icon={arrowBackOutline} />
             </IonButton>
           </IonButtons>
-          <IonTitle>{animal._id ? 'Editar Animal' : 'Adicionar Animal'}</IonTitle>
+          <IonTitle>{id ? 'Editar Animal' : 'Adicionar Animal'}</IonTitle>
         </IonToolbar>
       </IonHeader>
 
@@ -193,7 +215,7 @@ const AdicionarAnimal: React.FC = () => {
           onClick={handleSubmit}
           style={{ '--background': '#004030', color: '#FFF9E5', margin: '20px' }}
         >
-          {animal._id ? 'Atualizar Animal' : 'Salvar Animal'}
+          {id ? 'Atualizar Animal' : 'Salvar Animal'}
         </IonButton>
       </IonContent>
 
