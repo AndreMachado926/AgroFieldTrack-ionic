@@ -26,19 +26,18 @@ import {
     logOutOutline,
 } from "ionicons/icons";
 
-import icon from "leaflet/dist/images/marker-icon.png";
-import iconShadow from "leaflet/dist/images/marker-shadow.png";
-
 axios.defaults.withCredentials = true;
 const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
-L.Marker.prototype.options.icon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
+// Ícone customizado para pins
+const pinIcon = L.divIcon({
+    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#4A9782" width="30" height="40" style="filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); position: absolute; top: 0; left: 0;">
+        <path d="M12 0C7.03 0 3 4.03 3 9c0 5.25 9 15 9 15s9-9.75 9-15c0-4.97-4.03-9-9-9zm0 12c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+    </svg>`,
+    iconSize: [30, 40],
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -40],
+    className: 'custom-pin-icon',
 });
 
 interface Animal {
@@ -76,13 +75,14 @@ const MapaAnimaisPage: React.FC = () => {
         const map = L.map(mapRef.current, { center: [0, 0], zoom: 2 });
         mapInstanceRef.current = map;
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
-
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap & CartoDB'
+        }).addTo(map);
         const bounds: L.LatLngExpression[] = [];
 
         animals.forEach(animal => {
             if (animal.localizacaoX && animal.localizacaoY) {
-                const marker = L.marker([animal.localizacaoX, animal.localizacaoY]).addTo(map);
+                const marker = L.marker([animal.localizacaoX, animal.localizacaoY], { icon: pinIcon }).addTo(map);
                 marker.bindPopup(`<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}`);
                 bounds.push([animal.localizacaoX, animal.localizacaoY]);
             }
@@ -130,6 +130,16 @@ const MapaAnimaisPage: React.FC = () => {
 
     return (
         <IonPage>
+            <style>{`
+                .custom-pin-icon {
+                    background: transparent !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
+                .custom-pin-icon img {
+                    background: transparent !important;
+                }
+            `}</style>
             <IonHeader>
                 <IonToolbar>
                     <IonTitle>Mapa de Animais</IonTitle>

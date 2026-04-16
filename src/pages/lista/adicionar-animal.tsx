@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
   IonPage,
@@ -30,7 +30,7 @@ import {
   personOutline,
   bandageOutline
 } from "ionicons/icons";
-import { useHistory, useLocation } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -63,10 +63,23 @@ L.Marker.prototype.options.icon = L.icon({
 
 const AdicionarAnimal: React.FC = () => {
   const history = useHistory();
-  const [animal, setAnimal] = useState<Partial<Animal>>({
-    nome: "",
-    idade: 0,
-    raca: ""
+  const location = useLocation();
+  const { id } = useParams<{ id?: string }>();
+  const locationState = location.state as { animal?: Animal } | undefined;
+  
+  const [animal, setAnimal] = useState<Partial<Animal>>(() => {
+    // Usar dados do state passado via location (dados frescos da API)
+    if (locationState?.animal) {
+      console.log("Animal recebido da listagem:", locationState.animal);
+      return locationState.animal;
+    }
+    
+    // Default vazio para novo animal
+    return {
+      nome: "",
+      idade: 0,
+      raca: ""
+    };
   });
 
   // lê o cookie "auth" e tenta extrair o token JWT (suporta formatos: token directo, "name=token" ou JSON)
@@ -76,8 +89,38 @@ const AdicionarAnimal: React.FC = () => {
     return match ? match[2] : localStorage.getItem("authToken");
   };
 
+  // Se há ID na URL, buscar dados frescos do servidor
+  useEffect(() => {
+    const fetchAnimalData = async () => {
+      try {
+        if (!id) return; // Se não há ID, é novo animal
+
+        console.log("Buscando dados frescos do animal ID:", id);
+        const token = getToken();
+        if (!token) throw new Error("Não autenticado");
+        
+        const res = await axios.get(`${API_BASE}/getanimalbyyd/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        const freshAnimal = res.data.data;
+        console.log("Dados frescos do animal recebidos no adicionar-animal:", freshAnimal);
+        setAnimal(freshAnimal);
+      } catch (err: any) {
+        console.error('Erro ao buscar dados do animal:', err);
+        // Fallback: usa dados do state se disponível
+        if (locationState?.animal) {
+          setAnimal(locationState.animal);
+        }
+      }
+    };
+
+    fetchAnimalData();
+  }, [id]);
+
   const handleSubmit = async () => {
     try {
+      console.log("Submetendo animal:", animal);
       const token = getToken();
       if (!token) throw new Error("Não autenticado");
       const decoded: DecodedToken = jwtDecode(token);
@@ -90,15 +133,31 @@ const AdicionarAnimal: React.FC = () => {
 
       const animalData = {
         ...animal,
-        localizacaoX: 0,
-        localizacaoY: 0,
+        nome: animal.nome || "",
+        raca: animal.raca || "",
+        idade: animal.idade || 0,
+        localizacaoX: animal.localizacaoX || 0,
+        localizacaoY: animal.localizacaoY || 0,
         dono_id: userId
       };
 
-      await axios.post(`${API_BASE}/animais`, animalData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert('Animal adicionado com sucesso!');
+      console.log("Dados a enviar:", animalData);
+
+      // Se tem _id, é uma atualização; senão é um novo animal
+      if (animal._id) {
+        console.log("Atualizando animal com ID:", animal._id);
+        await axios.put(`${API_BASE}/animais/${animal._id}`, animalData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        alert('Animal atualizado com sucesso!');
+      } else {
+        console.log("Criando novo animal");
+        await axios.post(`${API_BASE}/animais`, animalData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        alert('Animal adicionado com sucesso!');
+      }
+
       history.goBack();
     } catch (err: any) {
       console.error('Erro ao salvar animal:', err);
@@ -115,7 +174,7 @@ const AdicionarAnimal: React.FC = () => {
               <IonIcon icon={arrowBackOutline} />
             </IonButton>
           </IonButtons>
-          <IonTitle>Adicionar Animal</IonTitle>
+          <IonTitle>{id ? 'Editar Animal' : 'Adicionar Animal'}</IonTitle>
         </IonToolbar>
       </IonHeader>
 
@@ -126,8 +185,8 @@ const AdicionarAnimal: React.FC = () => {
               label="Nome"
               labelPlacement="stacked"
               placeholder="Nome do animal"
-              value={animal.nome}
-              onIonChange={(e) => setAnimal(prev => ({ ...prev, nome: e.detail.value! }))}
+              value={animal.nome || ""}
+              onIonChange={(e) => setAnimal(prev => ({ ...prev, nome: e.detail.value || "" }))}
             />
           </IonItem>
           <IonItem>
@@ -135,8 +194,8 @@ const AdicionarAnimal: React.FC = () => {
               label="Raça"
               labelPlacement="stacked"
               placeholder="Raça do animal"
-              value={animal.raca}
-              onIonChange={(e) => setAnimal(prev => ({ ...prev, raca: e.detail.value! }))}
+              value={animal.raca || ""}
+              onIonChange={(e) => setAnimal(prev => ({ ...prev, raca: e.detail.value || "" }))}
             />
           </IonItem>
           <IonItem>
@@ -145,8 +204,8 @@ const AdicionarAnimal: React.FC = () => {
               label="Idade"
               labelPlacement="stacked"
               placeholder="Idade em anos"
-              value={animal.idade}
-              onIonChange={(e) => setAnimal(prev => ({ ...prev, idade: parseInt(e.detail.value!) || 0 }))}
+              value={animal.idade?.toString() || "0"}
+              onIonChange={(e) => setAnimal(prev => ({ ...prev, idade: parseInt(e.detail.value || "0") }))}
             />
           </IonItem>
         </IonList>
@@ -156,7 +215,7 @@ const AdicionarAnimal: React.FC = () => {
           onClick={handleSubmit}
           style={{ '--background': '#004030', color: '#FFF9E5', margin: '20px' }}
         >
-          Salvar Animal
+          {id ? 'Atualizar Animal' : 'Salvar Animal'}
         </IonButton>
       </IonContent>
 

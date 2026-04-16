@@ -63,8 +63,8 @@ const InnerApp: React.FC = () => {
             <Route exact path="/settings" component={Settings} />
             <Route exact path="/perfil" component={Conta} />
             <Route exact path="/mapa" component={Mapa} />
-            <Route exact path="/adicionar-animal" component={AdicionarAnimal} />
-            <Route exact path="/adicionar-plantacao" component={AdicionarPlantacao} />
+            <Route path="/adicionar-animal/:id?" component={AdicionarAnimal} />
+            <Route path="/adicionar-plantacao/:id?" component={AdicionarPlantacao} />
             <Route exact path="/chat" component={ChatPage} />
             <Route exact path="/contatos" component={ContatosPage} />
             <Route exact path="/veterinario/contatos" component={VeterinarioContatosPage} />

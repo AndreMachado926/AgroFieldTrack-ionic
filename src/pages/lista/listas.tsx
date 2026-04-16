@@ -41,7 +41,8 @@ import {
   leafOutline,
   addOutline,
   bandageOutline,
-  logOutOutline
+  logOutOutline,
+  shareOutline
 } from "ionicons/icons";
 import { searchCircleOutline } from 'ionicons/icons';
 import { jwtDecode } from "jwt-decode";
@@ -112,6 +113,8 @@ const AnimaisPage: React.FC = () => {
   const [segment, setSegment] = useState("animais");
   const [animais, setAnimais] = useState<Animal[]>([]);
   const [plantacoes, setPlantacoes] = useState<Plantacao[]>([]);
+  const [chats, setChats] = useState<any[]>([]);
+  const [loadingChatsState, setLoadingChatsState] = useState(false);
   const [selectedPlantacao, setSelectedPlantacao] = useState<Plantacao | null>(null);
   const [showPlantacaoModal, setShowPlantacaoModal] = useState(false);
   const [plantacaoModalTab, setPlantacaoModalTab] = useState<'info' | 'mapa'>('info');
@@ -123,6 +126,10 @@ const AnimaisPage: React.FC = () => {
   const toggleAccordion = () => setIsAccordionOpen(!isAccordionOpen);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareChats, setShareChats] = useState<any[]>([]);
+  const [selectedAnimalToShare, setSelectedAnimalToShare] = useState<Animal | null>(null);
+  const [loadingChats, setLoadingChats] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
   // guarda a instância do leaflet para poder remover/recriar sem erro
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -192,11 +199,27 @@ const AnimaisPage: React.FC = () => {
       if (!token) throw new Error("Não autenticado");
       const decoded: DecodedToken = jwtDecode(token);
       const userId = decoded.user_id;
-      const res = await axios.get(`${API_BASE}/plantacoes/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      let res;
+
+      try {
+        res = await axios.get(`${API_BASE}/plantacoes/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (firstErr: any) {
+        console.warn('Falha ao usar /plantacoes/:id, tentando endpoint /plantacoes/user/:user_id', firstErr?.message || firstErr);
+        res = await axios.get(`${API_BASE}/plantacoes/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
       const payload = res.data;
-      const data = Array.isArray(payload.data) ? payload.data : (Array.isArray(payload) ? payload : (payload.data ?? payload));
+      const data = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.data)
+        ? payload.data
+        : payload.data
+        ? [payload.data]
+        : [payload];
       setPlantacoes(data);
     } catch (err: any) {
       console.error("Fetch plantações erro:", err);
@@ -233,12 +256,116 @@ const AnimaisPage: React.FC = () => {
     }
   };
 
-  const handleAnimalClick = (animal: Animal) => {
-    history.push('/adicionar-animal', { animal });
+  // Fetch chats for share modal
+  const fetchChatsForShare = async () => {
+    setLoadingChats(true);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+      
+      const res = await axios.get(`${API_BASE}/users/${userId}/contacts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setShareChats(res.data || []);
+    } catch (err: any) {
+      console.error('Erro ao buscar chats:', err);
+      setShareChats([]);
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+  // Fetch all chats for logged user
+  const fetchAllChats = async () => {
+    setLoadingChatsState(true);
+    setError(null);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+      
+      const res = await axios.get(`${API_BASE}/chats/user/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Chats carregados:", res.data);
+      setChats(res.data || []);
+    } catch (err: any) {
+      console.error('Erro ao buscar chats:', err);
+      const msg = err?.response?.data?.message || err.message || "Erro ao obter chats";
+      setError(msg);
+      setChats([]);
+    } finally {
+      setLoadingChatsState(false);
+    }
+  };
+
+  // Send animal to a specific chat
+  const sendAnimalToChat = async (chatUser: any) => {
+    try {
+      if (!selectedAnimalToShare || !selectedAnimalToShare._id) return;
+
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+
+      // Get or create chat
+      const chatRes = await axios.get(`${API_BASE}/chat/${userId}/${chatUser._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const chat = chatRes.data;
+
+      // Send animal as message
+      const messagePayload = {
+        sender_id: userId,
+        sender_type: "user",
+        text: "",
+        animal_id: selectedAnimalToShare._id,
+      };
+
+      await axios.post(`${API_BASE}/chat/${chat._id}`, messagePayload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      alert("Animal partilhado com sucesso!");
+      setShowShareModal(false);
+      setSelectedAnimalToShare(null);
+    } catch (err: any) {
+      console.error('Erro ao partilhar animal:', err);
+      alert("Erro ao partilhar animal: " + (err?.response?.data?.message || err.message));
+    }
+  };
+
+  const handleAnimalClick = async (animal: Animal) => {
+    try {
+      console.log("Clicou no animal:", animal);
+      
+      if (!animal._id) {
+        console.warn("Animal sem _id, redirecionando para adicionar novo");
+        history.push('/adicionar-animal');
+        return;
+      }
+
+      // Navegar para a página com o ID na URL
+      history.push(`/adicionar-animal/${animal._id}`);
+    } catch (err: any) {
+      console.error('Erro ao navegar para animal:', err);
+      alert('Erro ao carregar dados do animal: ' + (err?.response?.data?.message || err.message));
+    }
+  };
+
+  const handleShareAnimal = (e: React.MouseEvent, animal: Animal) => {
+    e.stopPropagation();
+    setSelectedAnimalToShare(animal);
+    setShowShareModal(true);
+    fetchChatsForShare();
   };
 
   const handlePlantacaoClick = (plant: Plantacao) => {
-    history.push('/adicionar-plantacao', { plantacao: plant });
+    history.push(`/adicionar-plantacao/${plant._id}`);
   };
 
   const createMap = () => {
@@ -474,6 +601,8 @@ const AnimaisPage: React.FC = () => {
       fetchAnimais();
     } else if (segment === "plantacoes") {
       fetchPlantacoes();
+    } else if (segment === "chats") {
+      fetchAllChats();
     }
   }, [segment]);
 
@@ -841,6 +970,24 @@ const AnimaisPage: React.FC = () => {
                     opacity: 0.1,
                     zIndex: 1
                   }} />
+                  <div style={{ position: "absolute", top: 8, right: 8, zIndex: 3 }}>
+                    <IonButton
+                      fill="clear"
+                      onClick={(e) => handleShareAnimal(e, item)}
+                      style={{
+                        '--padding-start': '4px',
+                        '--padding-end': '4px',
+                        '--min-height': 'auto',
+                        height: '32px',
+                        width: '32px'
+                      }}
+                    >
+                      <IonIcon
+                        icon={shareOutline}
+                        style={{ fontSize: '20px', color: '#004030' }}
+                      />
+                    </IonButton>
+                  </div>
                   <div style={{ position: "relative", zIndex: 2, padding: "16px" }}>
                     <h2 style={{
                       margin: 0,
@@ -1152,6 +1299,56 @@ const AnimaisPage: React.FC = () => {
               Adicionar Remédio
             </IonButton>
           </div>
+        </IonContent>
+      </IonModal>
+
+      {/* Share Animal Modal */}
+      <IonModal
+        isOpen={showShareModal}
+        onDidDismiss={() => setShowShareModal(false)}
+      >
+        <IonHeader>
+          <IonToolbar style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
+            <IonTitle>Partilhar {selectedAnimalToShare?.nome}</IonTitle>
+            <IonButtons slot="end">
+              <IonButton onClick={() => setShowShareModal(false)}>Fechar</IonButton>
+            </IonButtons>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent style={{ '--background': '#FFF9E5' }}>
+          {loadingChats ? (
+            <div style={{ padding: 16, textAlign: 'center', color: '#004030' }}>Carregando contactos...</div>
+          ) : shareChats.length === 0 ? (
+            <div style={{ padding: 16, textAlign: 'center', color: '#666' }}>Nenhum contacto disponível</div>
+          ) : (
+            <IonList style={{ background: '#FFF9E5' }}>
+              {shareChats.map((chat: any) => (
+                <IonItem
+                  key={chat._id || chat.id}
+                  button
+                  onClick={() => sendAnimalToChat(chat)}
+                  style={{
+                    '--background': '#D1E8E2',
+                    borderRadius: '8px',
+                    margin: '8px 12px',
+                    '--padding-start': '12px',
+                    '--padding-end': '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '12px 0' }}>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, color: '#004030', fontWeight: '500' }}>{chat.name || chat.nome || 'Contacto'}</p>
+                      {chat.email && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>{chat.email}</p>}
+                    </div>
+                    <IonIcon
+                      icon={shareOutline}
+                      style={{ fontSize: '20px', color: '#004030', marginLeft: '12px' }}
+                    />
+                  </div>
+                </IonItem>
+              ))}
+            </IonList>
+          )}
         </IonContent>
       </IonModal>
 
