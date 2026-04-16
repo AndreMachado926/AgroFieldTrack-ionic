@@ -8,6 +8,7 @@ import Signup from './pages/login/signup';
 import Verification from './pages/login/verification';
 import VeterinariosPage from './pages/lista_veterinarios/veterinarios';
 import lista from './pages/lista/listas';
+import ListaVetPage from './pages/lista-vet/lista-vet';
 import { setupIonicReact } from '@ionic/react';
 import MarketDetalhes from './pages/marketplace/marketdetails';
 import Market from './pages/marketplace/market';
@@ -59,6 +60,7 @@ const InnerApp: React.FC = () => {
             <Route exact path="/marketdetalhes/:id" component={MarketDetalhes} />
             <Route exact path="/market" component={Market} />
             <Route exact path="/lista" component={lista} />
+            <Route exact path="/lista-vet" component={ListaVetPage} />
             <Route exact path="/veterinarios" component={VeterinariosPage} />
             <Route exact path="/settings" component={Settings} />
             <Route exact path="/perfil" component={Conta} />

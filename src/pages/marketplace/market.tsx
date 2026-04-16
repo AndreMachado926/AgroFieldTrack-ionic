@@ -8,7 +8,6 @@ import {
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonFooter,
   IonButton,
   IonIcon,
   IonLabel,
@@ -21,6 +20,7 @@ import {
   IonBadge,
   IonButtons,
 } from "@ionic/react";
+import FooterNav from "../../components/FooterNav";
 import { mapOutline, cartOutline, listOutline, personOutline, bandageOutline, settingsOutline, logOutOutline } from "ionicons/icons";
 
 axios.defaults.withCredentials = true;
@@ -166,36 +166,7 @@ const MarketPage: React.FC = () => {
       </IonContent>
 
       {/* Footer mantido igual */}
-      <IonFooter>
-        <IonToolbar style={{ "--background": "#DCD0A8", "--border-color": "#DCD0A8", "--min-height": "64px", "--padding": "6px 6px" }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 6 }}>
-            <IonButton fill="clear" routerLink="/mapa" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Mapa</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/market" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Market</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/lista" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Lista</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/veterinarios" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Veterinária</IonLabel>
-              </div>
-            </IonButton>
-          </div>
-        </IonToolbar>
-      </IonFooter>
+      <FooterNav />
     </IonPage>
   );
 };

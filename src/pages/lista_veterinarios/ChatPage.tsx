@@ -26,6 +26,7 @@ import "./ChatPage.css";
 
 interface DecodedToken {
     user_id: string;
+    type?: string;
 }
 interface AnimalInfo {
     _id: string;
@@ -129,7 +130,23 @@ const ChatPage: React.FC = () => {
             const token = getToken();
             if (!token) throw new Error("Não autenticado");
 
-            const res = await axios.get(`${API_BASE}/animais/${currentUserId}`, {
+            let currentUserType = decoded?.type;
+            if (!currentUserType) {
+                try {
+                    const typeRes = await axios.get(`${API_BASE}/veterinarios/${currentUserId}/type`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    currentUserType = typeRes.data.type;
+                } catch (typeErr) {
+                    console.warn('Não foi possível obter tipo de usuário no chat, usando padrão.', typeErr);
+                }
+            }
+
+            const endpoint = currentUserType === 'veterinario'
+                ? `${API_BASE}/veterinarios/${currentUserId}/shared-animals`
+                : `${API_BASE}/animais/${currentUserId}`;
+
+            const res = await axios.get(endpoint, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const payload = res.data;
