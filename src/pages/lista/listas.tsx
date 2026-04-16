@@ -18,7 +18,6 @@ import {
   IonItem,
   IonAvatar,
   IonNote,
-  IonFooter,
   IonTabBar,
   IonTabButton,
   IonModal,
@@ -30,6 +29,7 @@ import {
   IonCol,
   IonTextarea
 } from "@ionic/react";
+import FooterNav from "../../components/FooterNav";
 import {
   settingsOutline,
   pawOutline,
@@ -265,7 +265,7 @@ const AnimaisPage: React.FC = () => {
       const decoded: DecodedToken = jwtDecode(token);
       const userId = decoded.user_id;
       
-      const res = await axios.get(`${API_BASE}/users/${userId}/contacts`, {
+      const res = await axios.get(`${API_BASE}/chats/contacts/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setShareChats(res.data || []);
@@ -1337,8 +1337,19 @@ const AnimaisPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '12px 0' }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, color: '#004030', fontWeight: '500' }}>{chat.name || chat.nome || 'Contacto'}</p>
-                      {chat.email && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>{chat.email}</p>}
+                      <p style={{ margin: 0, color: '#004030', fontWeight: '500' }}>
+                        {chat.nome_completo || chat.name || chat.username || chat.nome || 'Contacto'}
+                      </p>
+                      {chat.especializacao && (
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>
+                          {chat.especializacao}
+                        </p>
+                      )}
+                      {chat.email && (
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>
+                          {chat.email}
+                        </p>
+                      )}
                     </div>
                     <IonIcon
                       icon={shareOutline}
@@ -1451,36 +1462,7 @@ const AnimaisPage: React.FC = () => {
       </IonButton>
 
       {/* MENU INFERIOR - UMA SÓ LINHA */}
-      <IonFooter>
-        <IonToolbar style={{ "--background": "#DCD0A8", "--border-color": "#DCD0A8", "--min-height": "64px", "--padding": "6px 6px" }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 6 }}>
-            <IonButton fill="clear" routerLink="/mapa" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Mapa</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/market" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Market</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/lista" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Lista</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/veterinarios" style={{ flex: '1 1 0', minWidth: 0 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: 18 }} />
-                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Veterinária</IonLabel>
-              </div>
-            </IonButton>
-          </div>
-        </IonToolbar>
-      </IonFooter>
+      <FooterNav />
 
       {/* Add to your CSS */}
       <style>

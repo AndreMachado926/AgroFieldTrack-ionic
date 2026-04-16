@@ -218,43 +218,6 @@ const AdicionarAnimal: React.FC = () => {
           {id ? 'Atualizar Animal' : 'Salvar Animal'}
         </IonButton>
       </IonContent>
-
-      <IonFooter>
-        <IonToolbar style={{ "--background": "#DCD0A8", "--border-color": "#DCD0A8", "--min-height": "64px", "--padding": "6px 6px" }}>
-          <div style={{ display: "flex", flexWrap: "nowrap", justifyContent: "space-between", alignItems: "center", width: "100%", gap: "6px", overflow: "hidden" }}>
-            <IonButton fill="clear" routerLink="/mapa" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Mapa</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/market" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Market</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/lista" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Lista</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/veterinarios" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Veterinária</IonLabel>
-              </div>
-            </IonButton>
-            <IonButton fill="clear" routerLink="/settings/conta" style={{ textTransform: 'none', flex: '1 1 0', minWidth: 0, padding: '6px 4px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <IonIcon icon={personOutline} style={{ color: "#004030", fontSize: "18px" }} />
-                <IonLabel style={{ color: "#004030", fontSize: "11px", textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Perfil</IonLabel>
-              </div>
-            </IonButton>
-          </div>
-        </IonToolbar>
-      </IonFooter>
     </IonPage>
   );
 };

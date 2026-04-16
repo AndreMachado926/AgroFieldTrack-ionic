@@ -10,13 +10,13 @@ import {
     IonHeader,
     IonToolbar,
     IonTitle,
-    IonFooter,
     IonButton,
     IonIcon,
     IonLabel,
     IonText,
     IonButtons,
 } from "@ionic/react";
+import FooterNav from "../../components/FooterNav";
 import {
     mapOutline,
     cartOutline,
@@ -46,11 +46,13 @@ interface Animal {
     raca?: string;
     localizacaoX?: number;
     localizacaoY?: number;
+    dono_id?: string | { nome_completo?: string; username?: string };
 }
 
 interface DecodedToken {
     user_id: string;
     username: string;
+    type?: string;
     iat: number;
     exp: number;
 }
@@ -82,8 +84,12 @@ const MapaAnimaisPage: React.FC = () => {
 
         animals.forEach(animal => {
             if (animal.localizacaoX && animal.localizacaoY) {
+                const ownerName = typeof animal.dono_id === 'object'
+                    ? (animal.dono_id.nome_completo || animal.dono_id.username || '')
+                    : '';
+                const popupText = `<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}${ownerName ? `<br/>Dono: ${ownerName}` : ''}`;
                 const marker = L.marker([animal.localizacaoX, animal.localizacaoY], { icon: pinIcon }).addTo(map);
-                marker.bindPopup(`<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}`);
+                marker.bindPopup(popupText);
                 bounds.push([animal.localizacaoX, animal.localizacaoY]);
             }
         });
@@ -96,14 +102,33 @@ const MapaAnimaisPage: React.FC = () => {
         const init = async () => {
             setLoading(true);
             try {
-                const token = getToken();
+                        const token = getToken();
                 if (!token) throw new Error("Não autenticado");
                 const decoded: DecodedToken = jwtDecode(token);
                 const userId = decoded.user_id;
-                const res = await axios.get(`${API_BASE}/animais/${userId}`, {
+
+                let currentUserType = decoded.type;
+                if (!currentUserType) {
+                    try {
+                        const typeRes = await axios.get(`${API_BASE}/veterinarios/${userId}/type`, {
+                            headers: { Authorization: `Bearer ${token}` },
+                        });
+                        currentUserType = typeRes.data.type;
+                    } catch (typeErr) {
+                        console.warn('Não foi possível obter tipo de usuário, usando padrão.', typeErr);
+                    }
+                }
+
+                const endpoint = currentUserType === 'veterinario'
+                    ? `${API_BASE}/veterinarios/${userId}/shared-animals`
+                    : `${API_BASE}/animais/${userId}`;
+
+                const res = await axios.get(endpoint, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const animalsData: Animal[] = res.data.data || [];
+                const animalsData: Animal[] = Array.isArray(res.data)
+                    ? res.data
+                    : res.data?.data || [];
                 setAnimais(animalsData);
                 createMap(animalsData);
             } catch (err) {
@@ -173,36 +198,7 @@ const MapaAnimaisPage: React.FC = () => {
                 <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
             </IonContent>
 
-            <IonFooter>
-                <IonToolbar style={{ "--background": "#DCD0A8", "--border-color": "#DCD0A8", "--min-height": "64px", "--padding": "6px 6px" }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 6 }}>
-                        <IonButton fill="clear" routerLink="/mapa" style={{ flex: '1 1 0', minWidth: 0 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <IonIcon icon={mapOutline} style={{ color: "#004030", fontSize: 18 }} />
-                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Mapa</IonLabel>
-                            </div>
-                        </IonButton>
-                        <IonButton fill="clear" routerLink="/market" style={{ flex: '1 1 0', minWidth: 0 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: 18 }} />
-                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Market</IonLabel>
-                            </div>
-                        </IonButton>
-                        <IonButton fill="clear" routerLink="/lista" style={{ flex: '1 1 0', minWidth: 0 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <IonIcon icon={listOutline} style={{ color: "#004030", fontSize: 18 }} />
-                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Lista</IonLabel>
-                            </div>
-                        </IonButton>
-                        <IonButton fill="clear" routerLink="/veterinarios" style={{ flex: '1 1 0', minWidth: 0 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <IonIcon icon={bandageOutline} style={{ color: "#004030", fontSize: 18 }} />
-                                <IonLabel style={{ color: "#004030", fontSize: 11 }}>Veterinária</IonLabel>
-                            </div>
-                        </IonButton>
-                    </div>
-                </IonToolbar>
-            </IonFooter>
+            <FooterNav />
         </IonPage>
     );
 };

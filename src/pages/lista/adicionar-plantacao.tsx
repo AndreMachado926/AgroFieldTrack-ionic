@@ -549,18 +549,6 @@ const AdicionarPlantacao: React.FC = () => {
                     </>
                 )}
             </IonContent>
-
-            <IonFooter>
-                <IonToolbar style={{ "--background": "#DCD0A8", "--border-color": "#DCD0A8", "--min-height": "64px", "--padding": "6px 6px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                        <IonButton fill="clear" routerLink="/mapa" style={{ flex: 1 }}><IonIcon icon={mapOutline} /><IonLabel>Mapa</IonLabel></IonButton>
-                        <IonButton fill="clear" routerLink="/market" style={{ flex: 1 }}><IonIcon icon={cartOutline} /><IonLabel>Market</IonLabel></IonButton>
-                        <IonButton fill="clear" routerLink="/lista" style={{ flex: 1 }}><IonIcon icon={listOutline} /><IonLabel>Lista</IonLabel></IonButton>
-                        <IonButton fill="clear" routerLink="/veterinarios" style={{ flex: 1 }}><IonIcon icon={bandageOutline} /><IonLabel>Veterinária</IonLabel></IonButton>
-                        <IonButton fill="clear" routerLink="/settings/conta" style={{ flex: 1 }}><IonIcon icon={personOutline} /><IonLabel>Perfil</IonLabel></IonButton>
-                    </div>
-                </IonToolbar>
-            </IonFooter>
         </IonPage>
     );
 };
