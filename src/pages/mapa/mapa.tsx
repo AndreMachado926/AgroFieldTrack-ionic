@@ -79,11 +79,17 @@ const MapaAnimaisPage: React.FC = () => {
         if (!mapRef.current) return;
         if (mapInstanceRef.current) mapInstanceRef.current.remove();
 
-        const map = L.map(mapRef.current, { center: [0, 0], zoom: 2 });
+        const map = L.map(mapRef.current, {
+            center: [0, 0],
+            zoom: 2,
+            maxBounds: [[-90, -180], [90, 180]],
+            maxBoundsViscosity: 1.0,
+        });
         mapInstanceRef.current = map;
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap & CartoDB'
+            attribution: '&copy; OpenStreetMap & CartoDB',
+            noWrap: true,
         }).addTo(map);
         const bounds: L.LatLngExpression[] = [];
 
