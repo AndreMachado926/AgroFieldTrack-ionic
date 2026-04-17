@@ -3,21 +3,22 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import logo from "../lista/logo.png";
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonButton,
-  IonIcon,
-  IonContent,
-  IonCard,
-  IonItem,
-  IonAvatar,
-  IonNote,
-  IonLabel,
-} from "@ionic/react";
+  AppBar,
+  Toolbar,
+  Avatar,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Box,
+  Container,
+  IconButton
+} from "@mui/material";
+import {
+  Settings as SettingsIcon,
+  Logout as LogoutIcon
+} from "@mui/icons-material";
 import FooterNav from "../../components/FooterNav";
-import { settingsOutline, mapOutline, cartOutline, listOutline, bandageOutline, logOutOutline } from "ionicons/icons";
 import { jwtDecode } from "jwt-decode";
 
 interface DecodedToken {
@@ -155,64 +156,81 @@ const VeterinariosPage: React.FC = () => {
     }
   };
   const renderCard = (item: any, isContact = false) => (
-    <IonCard
+    <Card
       key={item._id}
-      style={{
+      sx={{
         backgroundColor: "#DCD0A8",
         borderRadius: "16px",
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        marginBottom: "12px",
+        mb: 1.5,
         position: "relative",
+        p: 1
       }}
     >
-      <IonItem lines="none" style={{ "--background": "#DCD0A8", borderRadius: "16px", padding: "8px 4px" }}>
-        <IonAvatar slot="start">
-          <div
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "50%",
-              backgroundColor: "#4A9782",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#FFF9E5",
-              fontWeight: "bold",
-            }}
-          >
-            {isContact ? item.username?.[0]?.toUpperCase() : item.nome?.[0]?.toUpperCase() || "?"}
-          </div>
-        </IonAvatar>
+      <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+        <Avatar sx={{
+          width: 42,
+          height: 42,
+          backgroundColor: "#4A9782",
+          color: "#FFF9E5",
+          fontWeight: "bold",
+          mr: 2
+        }}>
+          {isContact ? item.username?.[0]?.toUpperCase() : item.nome?.[0]?.toUpperCase() || "?"}
+        </Avatar>
 
-        <IonLabel>
-          <h2 style={{ fontWeight: 600, color: "#004030", fontSize: "15px", marginBottom: "2px" }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h6" sx={{
+            fontWeight: 600,
+            color: "#004030",
+            fontSize: "15px",
+            mb: 0.5
+          }}>
             {isContact ? item.username : item.nome}
-          </h2>
+          </Typography>
 
           {!isContact && item.especialidade && (
-            <p style={{ color: "#004030b0", fontSize: "13px", margin: 0 }}>{item.especialidade}</p>
+            <Typography variant="body2" sx={{
+              color: "#004030b0",
+              fontSize: "13px",
+              m: 0
+            }}>
+              {item.especialidade}
+            </Typography>
           )}
           {isContact && item.email && (
-            <p style={{ color: "#004030b0", fontSize: "12px", marginTop: 2 }}>{item.email}</p>
+            <Typography variant="body2" sx={{
+              color: "#004030b0",
+              fontSize: "12px",
+              mt: 0.5
+            }}>
+              {item.email}
+            </Typography>
           )}
           {isContact && item.type && (
-            <p style={{ color: "#666", fontSize: "12px", marginTop: 2 }}>{item.type}</p>
+            <Typography variant="body2" sx={{
+              color: "#666",
+              fontSize: "12px",
+              mt: 0.5
+            }}>
+              {item.type}
+            </Typography>
           )}
-        </IonLabel>
+        </Box>
 
-
-        <IonButton
-          fill="solid"
+        <Button
+          variant="contained"
           size="small"
-          style={{
+          sx={{
             position: "absolute",
-            bottom: "8px",
-            right: "8px",
+            bottom: 8,
+            right: 8,
             fontSize: "12px",
-            padding: "4px 8px",
-            '--background': '#004030', // verde completo
-            '--color': '#FFF9E5',       // cor do texto
+            px: 1,
+            backgroundColor: '#004030',
+            color: '#FFF9E5',
             zIndex: 10,
+            '&:hover': { backgroundColor: '#003020' }
           }}
           onClick={() => {
             const targetId = item._id;
@@ -222,62 +240,55 @@ const VeterinariosPage: React.FC = () => {
           }}
         >
           Chat
-        </IonButton>
-      </IonItem>
-    </IonCard>
+        </Button>
+      </Box>
+    </Card>
   );
 
   return (
-    <IonPage style={{ backgroundColor: "#FFF9E5", color: "#004030" }}>
-      <IonHeader translucent={false}>
-        <IonToolbar
-          style={{
-            ["--background" as any]: "#FFF9E5",
-            ["--color" as any]: "#004030",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "6px 12px",
-          }}
-        >
-          <img
+    <Box sx={{ backgroundColor: "#FFF9E5", color: "#004030", minHeight: '100vh' }}>
+      <AppBar position="static" sx={{ backgroundColor: "#FFF9E5", color: "#004030", boxShadow: 'none', borderBottom: '1px solid #DCD0A8' }}>
+        <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2 }}>
+          <Avatar
             src={logo}
             alt="perfil"
-            style={{ borderRadius: "50%", width: 40, height: 40, border: "2px solid #DCD0A8", objectFit: "cover" }}
+            sx={{
+              width: 40,
+              height: 40,
+              border: "2px solid #DCD0A8",
+              objectFit: "cover"
+            }}
           />
-          <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
-            {/* Botão de Settings */}
-            <IonButton fill="clear" href="/#/settings">
-              <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
-            </IonButton>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <IconButton href="/#/settings" sx={{ color: "#004030" }}>
+              <SettingsIcon />
+            </IconButton>
+            <IconButton onClick={handleLogout} sx={{ color: "#004030" }}>
+              <LogoutIcon />
+            </IconButton>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
-            {/* Botão de Logout */}
-            <IonButton fill="clear" onClick={handleLogout}>
-              <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent style={{ backgroundColor: "#FFF9E5", padding: "16px" }}>
-        {loading && <p style={{ color: "#004030" }}>A carregar...</p>}
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
+      <Container maxWidth="md" sx={{ py: 2, backgroundColor: "#FFF9E5" }}>
+        {loading && <Typography sx={{ color: "#004030" }}>A carregar...</Typography>}
+        {error && <Typography sx={{ color: "error.main" }}>{error}</Typography>}
 
         {!loading && userType === "veterinario" && contacts.length === 0 && (
-          <p style={{ color: "#004030b0" }}>Nenhum contato encontrado.</p>
+          <Typography sx={{ color: "#004030b0" }}>Nenhum contato encontrado.</Typography>
         )}
         {!loading && userType !== "veterinario" && veterinarios.length === 0 && !error && (
-          <p style={{ color: "#004030b0" }}>Nenhum veterinário encontrado.</p>
+          <Typography sx={{ color: "#004030b0" }}>Nenhum veterinário encontrado.</Typography>
         )}
 
         {/* Lista de cards */}
         {userType === "veterinario"
           ? contacts.map((c) => renderCard(c, true))
           : veterinarios.map((v) => renderCard(v))}
-      </IonContent>
+      </Container>
 
       <FooterNav />
-    </IonPage>
+    </Box>
   );
 };
 
