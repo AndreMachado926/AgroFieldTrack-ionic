@@ -109,7 +109,7 @@ const MapaAnimaisPage: React.FC = () => {
         setTimeout(() => map.invalidateSize(), 300);
     };
 
-    const updateUserMarker = (lat: number, lng: number, label = 'Você') => {
+    const updateUserMarker = (lat: number, lng: number, label = 'TU') => {
         const map = mapInstanceRef.current;
         if (!map) return;
 
