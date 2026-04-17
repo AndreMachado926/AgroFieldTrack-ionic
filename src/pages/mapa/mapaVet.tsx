@@ -122,7 +122,11 @@ const MapaVetPage: React.FC = () => {
             }).addTo(map);
             marker.bindPopup(label);
             userLocationMarkerRef.current = marker;
-            map.setView([lat, lng], 13);
+
+            // Se não há animais no mapa, centraliza na localização do usuário
+            if (!animais.length) {
+                map.setView([lat, lng], 13);
+            }
         }
     };
 
