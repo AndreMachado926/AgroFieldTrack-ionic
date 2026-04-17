@@ -18,10 +18,12 @@ import {
     IonItem,
     IonLabel,
 } from "@ionic/react";
-import { arrowBackOutline, attachOutline } from "ionicons/icons";
+import { arrowBackOutline, attachOutline, navigateOutline } from "ionicons/icons";
 import { jwtDecode } from "jwt-decode";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet-routing-machine";
+import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "./ChatPage.css";
 
 interface DecodedToken {
@@ -70,9 +72,11 @@ const ChatPage: React.FC = () => {
     const [animalsError, setAnimalsError] = useState<string | null>(null);
     const [showMapModal, setShowMapModal] = useState(false);
     const [selectedAnimalForMap, setSelectedAnimalForMap] = useState<AnimalInfo | null>(null);
+    const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const mensagensRef = useRef<Mensagem[]>([]);
     const socketRef = useRef<Socket | null>(null);
+    const mapRef = useRef<L.Map | null>(null);
     const [chatUsers, setChatUsers] = useState<ChatCookie | null>(null);
 
     const getToken = (): string | null => {
@@ -219,7 +223,32 @@ const ChatPage: React.FC = () => {
 
     const openLocationMap = (animal: AnimalInfo) => {
         setSelectedAnimalForMap(animal);
+        setUserLocation(null); // Reset user location when opening new map
         setShowMapModal(true);
+    };
+
+    const openGoogleMapsDirections = () => {
+        if (!mapRef.current || !selectedAnimalForMap) return;
+
+        if (!userLocation) {
+            alert('Localização do usuário não disponível. Permita o acesso à localização para calcular a rota.');
+            return;
+        }
+
+        const waypoints = [
+            L.latLng(userLocation.lat, userLocation.lng),
+            L.latLng(selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY)
+        ];
+
+        // Adicionar controle de roteamento
+        L.Routing.control({
+            waypoints: waypoints,
+            routeWhileDragging: true,
+            createMarker: function() { return null; }, // Não criar marcadores extras
+            lineOptions: {
+                styles: [{ color: '#007AFF', weight: 6 }]
+            }
+        }).addTo(mapRef.current);
     };
 
     const createLocationMap = () => {
@@ -240,13 +269,55 @@ const ChatPage: React.FC = () => {
                 13
             );
 
+            mapRef.current = map;
+
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 attribution: '&copy; OpenStreetMap contributors',
             }).addTo(map);
 
+            // Adicionar marcador do animal
             L.marker([selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY])
                 .addTo(map)
                 .bindPopup(`<b>${selectedAnimalForMap.nome}</b><br>${selectedAnimalForMap.raca}`);
+
+            // Tentar obter localização do usuário
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+
+                        // Armazenar localização do usuário
+                        setUserLocation({ lat: userLat, lng: userLng });
+
+                        // Adicionar marcador do usuário
+                        const userMarker = L.circleMarker([userLat, userLng], {
+                            radius: 8,
+                            color: '#007AFF',
+                            fillColor: '#007AFF',
+                            fillOpacity: 0.9,
+                            weight: 2,
+                        }).addTo(map);
+                        userMarker.bindPopup('Sua localização');
+
+                        // Ajustar bounds para incluir animal e usuário
+                        const bounds = L.latLngBounds([
+                            [selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY],
+                            [userLat, userLng]
+                        ]);
+                        map.fitBounds(bounds, { padding: [20, 20] });
+                    },
+                    (error) => {
+                        console.warn('Erro ao obter localização do usuário:', error);
+                        // Mesmo com erro, manter o foco no animal
+                        map.setView([selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY], 13);
+                    },
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+                );
+            } else {
+                // Fallback se geolocalização não estiver disponível
+                map.setView([selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY], 13);
+            }
         }, 100);
     };
 
@@ -462,6 +533,7 @@ const ChatPage: React.FC = () => {
                         className="chat-input"
                         value={input}
                         placeholder="Digite sua mensagem"
+                        autofocus={false}
                         onIonChange={(e) => setInput(e.detail.value ?? "")}
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && canSend) sendMessage();
@@ -513,8 +585,30 @@ const ChatPage: React.FC = () => {
                             </IonButtons>
                         </IonToolbar>
                     </IonHeader>
-                    <IonContent>
+                    <IonContent style={{ position: 'relative' }}>
                         <div id="location-map" style={{ width: "100%", height: "100%" }} />
+                        {selectedAnimalForMap && (
+                            <IonButton
+                                fill="solid"
+                                color="primary"
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '20px',
+                                    right: '20px',
+                                    zIndex: 1000,
+                                    borderRadius: '50%',
+                                    width: '56px',
+                                    height: '56px',
+                                    '--padding-start': '0',
+                                    '--padding-end': '0',
+                                    '--padding-top': '0',
+                                    '--padding-bottom': '0'
+                                }}
+                                onClick={openGoogleMapsDirections}
+                            >
+                                <IonIcon icon={navigateOutline} style={{ fontSize: '24px' }} />
+                            </IonButton>
+                        )}
                     </IonContent>
                 </IonModal>
             </IonContent>

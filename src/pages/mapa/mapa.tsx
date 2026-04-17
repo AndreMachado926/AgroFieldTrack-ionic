@@ -69,6 +69,7 @@ const MapaAnimaisPage: React.FC = () => {
     const [animais, setAnimais] = useState<Animal[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
     const getToken = () => {
         const match = document.cookie.match(/(^| )auth=([^;]+)/);
@@ -106,6 +107,12 @@ const MapaAnimaisPage: React.FC = () => {
         });
 
         if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+
+        // Adicionar marcador do usuário se localização já foi obtida
+        if (userLocation) {
+            updateUserMarker(userLocation.lat, userLocation.lng);
+        }
+
         setTimeout(() => map.invalidateSize(), 300);
     };
 
@@ -125,7 +132,11 @@ const MapaAnimaisPage: React.FC = () => {
             }).addTo(map);
             marker.bindPopup(label);
             userLocationMarkerRef.current = marker;
-            map.setView([lat, lng], 13);
+
+            // Se não há animais no mapa, centraliza na localização do usuário
+            if (!animais.length) {
+                map.setView([lat, lng], 13);
+            }
         }
     };
 
@@ -177,6 +188,7 @@ const MapaAnimaisPage: React.FC = () => {
                 (pos) => {
                     const lat = pos.coords.latitude;
                     const lng = pos.coords.longitude;
+                    setUserLocation({ lat, lng });
                     updateUserMarker(lat, lng);
                     const token = getToken();
                     if (token) {
