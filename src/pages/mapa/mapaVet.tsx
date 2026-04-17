@@ -17,7 +17,7 @@ import {
     IonText,
     IonButtons,
 } from "@ionic/react";
-import FooterNav from "../../components/FooterNav";
+import FooterTabs from "../../components/FooterTabs";
 import {
     mapOutline,
     cartOutline,
@@ -47,18 +47,16 @@ interface Animal {
     raca?: string;
     localizacaoX?: number;
     localizacaoY?: number;
-    dono_id?: string | { nome_completo?: string; username?: string };
 }
 
 interface DecodedToken {
     user_id: string;
     username: string;
-    type?: string;
     iat: number;
     exp: number;
 }
 
-const MapaAnimaisPage: React.FC = () => {
+const MapaVetPage: React.FC = () => {
     const mapRef = useRef<HTMLDivElement | null>(null);
     const mapInstanceRef = useRef<L.Map | null>(null);
     const socketRef = useRef<Socket | null>(null);
@@ -88,18 +86,17 @@ const MapaAnimaisPage: React.FC = () => {
         const bounds: L.LatLngExpression[] = [];
 
         animals.forEach(animal => {
-            if (animal.localizacaoX && animal.localizacaoY) {
-                const ownerName = typeof animal.dono_id === 'object'
-                    ? (animal.dono_id.nome_completo || animal.dono_id.username || '')
-                    : '';
-                const popupText = `<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}${ownerName ? `<br/>Dono: ${ownerName}` : ''}`;
+            if (typeof animal.localizacaoX === 'number' && typeof animal.localizacaoY === 'number') {
                 const marker = L.marker([animal.localizacaoX, animal.localizacaoY], { icon: pinIcon }).addTo(map);
-                marker.bindPopup(popupText);
+                marker.bindPopup(`<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}`);
                 bounds.push([animal.localizacaoX, animal.localizacaoY]);
             }
         });
 
-        if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+        if (bounds.length > 0) {
+            map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+        }
+
         setTimeout(() => map.invalidateSize(), 300);
     };
 
@@ -175,6 +172,7 @@ const MapaAnimaisPage: React.FC = () => {
                     const token = getToken();
                     if (token) {
                         const decoded: DecodedToken = jwtDecode(token);
+                        decodedUserIdRef.current = decoded.user_id;
                         socket.emit("locationUpdate", { userId: decoded.user_id, lat, lng });
                     } else {
                         socket.emit("locationUpdate", { lat, lng });
@@ -192,40 +190,23 @@ const MapaAnimaisPage: React.FC = () => {
 
         const init = async () => {
             setLoading(true);
+            setError(null);
+
             try {
                 const token = getToken();
                 if (!token) throw new Error("Não autenticado");
                 const decoded: DecodedToken = jwtDecode(token);
                 decodedUserIdRef.current = decoded.user_id;
                 const userId = decoded.user_id;
-
-                let currentUserType = decoded.type;
-                if (!currentUserType) {
-                    try {
-                        const typeRes = await axios.get(`${API_BASE}/veterinarios/${userId}/type`, {
-                            headers: { Authorization: `Bearer ${token}` },
-                        });
-                        currentUserType = typeRes.data.type;
-                    } catch (typeErr) {
-                        console.warn('Não foi possível obter tipo de usuário, usando padrão.', typeErr);
-                    }
-                }
-
-                const endpoint = currentUserType === 'veterinario'
-                    ? `${API_BASE}/veterinarios/${userId}/shared-animals`
-                    : `${API_BASE}/animais/${userId}`;
-
-                const res = await axios.get(endpoint, {
+                const res = await axios.get(`${API_BASE}/veterinarios/${userId}/shared-animals`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const animalsData: Animal[] = Array.isArray(res.data)
-                    ? res.data
-                    : res.data?.data || [];
+                const animalsData: Animal[] = res.data.data || [];
                 setAnimais(animalsData);
                 createMap(animalsData);
-            } catch (err) {
+            } catch (err: any) {
                 console.error(err);
-                setError("Sessão expirada ou inválida");
+                setError(err?.response?.data?.message || "Erro ao carregar animais partilhados");
             } finally {
                 setLoading(false);
             }
@@ -267,15 +248,13 @@ const MapaAnimaisPage: React.FC = () => {
             `}</style>
             <IonHeader>
                 <IonToolbar>
-                    <IonTitle>Mapa de Animais</IonTitle>
+                    <IonTitle>Mapa Veterinário</IonTitle>
 
                     <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
-                        {/* Botão de Settings */}
                         <IonButton fill="clear" href="/#/settings">
                             <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
                         </IonButton>
 
-                        {/* Botão de Logout */}
                         <IonButton fill="clear" onClick={handleLogout}>
                             <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
                         </IonButton>
@@ -294,13 +273,18 @@ const MapaAnimaisPage: React.FC = () => {
                         <p style={{ textAlign: "center" }}>{error}</p>
                     </IonText>
                 )}
+                {!loading && !error && animais.length === 0 && (
+                    <IonText>
+                        <p style={{ textAlign: "center" }}>Nenhum animal partilhado encontrado.</p>
+                    </IonText>
+                )}
 
                 <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
             </IonContent>
 
-            <FooterNav />
+            <FooterTabs activeTab="mapa" isVeterinario />
         </IonPage>
     );
 };
 
-export default MapaAnimaisPage;
+export default MapaVetPage;
