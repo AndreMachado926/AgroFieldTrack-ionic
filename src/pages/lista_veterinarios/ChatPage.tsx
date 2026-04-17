@@ -241,7 +241,7 @@ const ChatPage: React.FC = () => {
         ];
 
         // Adicionar controle de roteamento
-        L.Routing.control({
+        (L.Routing.control as any)({
             waypoints: waypoints,
             routeWhileDragging: true,
             createMarker: function() { return null; }, // Não criar marcadores extras
