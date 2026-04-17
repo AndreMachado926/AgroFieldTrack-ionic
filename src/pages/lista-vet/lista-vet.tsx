@@ -2,26 +2,20 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
-  IonContent,
-  IonCard,
-  IonLabel,
-  IonIcon,
-} from "@ionic/react";
-import FooterNav from "../../components/FooterNav";
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Card,
+  CardContent,
+  Box,
+  Container
+} from "@mui/material";
 import {
-  mapOutline,
-  cartOutline,
-  listOutline,
-  bandageOutline,
-  logOutOutline,
-  settingsOutline,
-} from "ionicons/icons";
+  Settings as SettingsIcon,
+  Logout as LogoutIcon
+} from "@mui/icons-material";
+import FooterNav from "../../components/FooterNav";
 
 interface DecodedToken {
   user_id: string;
@@ -115,57 +109,52 @@ const ListaVetPage: React.FC = () => {
   };
 
   return (
-    <IonPage style={{ backgroundColor: "#FFF9E5", color: "#004030" }}>
-      <IonHeader>
-        <IonToolbar
-          style={{
-            ["--background" as any]: "#FFF9E5",
-            ["--color" as any]: "#004030",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "6px 12px",
-          }}
-        >
-          <IonTitle>Lista Veterinários</IonTitle>
-          <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
-            <IonButton fill="clear" href="/#/settings">
-              <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
-            </IonButton>
-            <IonButton fill="clear" onClick={handleLogout}>
-              <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
+    <Box sx={{ backgroundColor: "#FFF9E5", color: "#004030", minHeight: '100vh' }}>
+      <AppBar position="static" sx={{ backgroundColor: "#FFF9E5", color: "#004030", boxShadow: 'none', borderBottom: '1px solid #DCD0A8' }}>
+        <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2 }}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Lista Veterinários
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <IconButton href="/#/settings" sx={{ color: "#004030" }}>
+              <SettingsIcon />
+            </IconButton>
+            <IconButton onClick={handleLogout} sx={{ color: "#004030" }}>
+              <LogoutIcon />
+            </IconButton>
+          </Box>
+        </Toolbar>
+      </AppBar>
 
-      <IonContent style={{ padding: "16px" }}>
-        {loading && <p style={{ color: "#004030" }}>Carregando...</p>}
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
+      <Container maxWidth="md" sx={{ py: 2 }}>
+        {loading && <Typography sx={{ color: "#004030" }}>Carregando...</Typography>}
+        {error && <Typography sx={{ color: "error.main" }}>{error}</Typography>}
         {!loading && !error && animais.length === 0 && (
-          <p style={{ color: "#666" }}>Nenhum animal encontrado para este usuário.</p>
+          <Typography sx={{ color: "#666" }}>Nenhum animal encontrado para este usuário.</Typography>
         )}
 
         {animais.map((animal) => (
-          <IonCard key={animal._id} style={{ marginBottom: "12px", borderRadius: "14px" }}>
-            <div style={{ padding: "16px" }}>
-              <h2 style={{ margin: "0 0 6px", color: "#004030" }}>{animal.nome}</h2>
-              <p style={{ margin: 0, color: "#004030b0" }}>
+          <Card key={animal._id} sx={{ mb: 1.5, borderRadius: "14px", backgroundColor: "#D1E8E2" }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography variant="h6" sx={{ mb: 1, color: "#004030" }}>
+                {animal.nome}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#004030b0", mb: 0.5 }}>
                 Raça: {animal.raca ?? "—"}
-              </p>
-              <p style={{ margin: "6px 0 0", color: "#004030b0" }}>
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#004030b0", mb: 0.5 }}>
                 Idade: {animal.idade ?? "—"}
-              </p>
-              <p style={{ margin: "6px 0 0", color: "#666" }}>
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#666" }}>
                 Localização: {animal.localizacaoX ?? "—"}, {animal.localizacaoY ?? "—"}
-              </p>
-            </div>
-          </IonCard>
+              </Typography>
+            </CardContent>
+          </Card>
         ))}
-      </IonContent>
+      </Container>
 
       <FooterNav />
-    </IonPage>
+    </Box>
   );
 };
 
