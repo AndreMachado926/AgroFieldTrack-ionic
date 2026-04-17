@@ -77,6 +77,7 @@ const ChatPage: React.FC = () => {
     const mensagensRef = useRef<Mensagem[]>([]);
     const socketRef = useRef<Socket | null>(null);
     const mapRef = useRef<L.Map | null>(null);
+    const routingControlRef = useRef<any>(null);
     const [chatUsers, setChatUsers] = useState<ChatCookie | null>(null);
 
     const getToken = (): string | null => {
@@ -235,20 +236,29 @@ const ChatPage: React.FC = () => {
             return;
         }
 
+        if (routingControlRef.current) {
+            mapRef.current.removeControl(routingControlRef.current);
+            routingControlRef.current = null;
+        }
+
         const waypoints = [
             L.latLng(userLocation.lat, userLocation.lng),
             L.latLng(selectedAnimalForMap.localizacaoX, selectedAnimalForMap.localizacaoY)
         ];
 
-        // Adicionar controle de roteamento
-        (L.Routing.control as any)({
+        const routingControl = (L.Routing.control as any)({
             waypoints: waypoints,
-            routeWhileDragging: true,
-            createMarker: function() { return null; }, // Não criar marcadores extras
+            routeWhileDragging: false,
+            showAlternatives: false,
+            addWaypoints: false,
+            fitSelectedRoute: true,
+            createMarker: function() { return null; },
             lineOptions: {
                 styles: [{ color: '#007AFF', weight: 6 }]
             }
         }).addTo(mapRef.current);
+
+        routingControlRef.current = routingControl;
     };
 
     const createLocationMap = () => {
@@ -328,6 +338,9 @@ const ChatPage: React.FC = () => {
     useEffect(() => {
         if (showMapModal) {
             createLocationMap();
+        } else if (routingControlRef.current && mapRef.current) {
+            mapRef.current.removeControl(routingControlRef.current);
+            routingControlRef.current = null;
         }
     }, [showMapModal]);
 

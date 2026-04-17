@@ -152,3 +152,24 @@
   width: 100%;
   height: 100%;
 }
+
+.leaflet-routing-container .leaflet-routing-toolbar a,
+.leaflet-routing-container .leaflet-routing-toolbar button {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  font-size: 18px;
+}
+
+.leaflet-routing-container .leaflet-routing-toolbar a:hover,
+.leaflet-routing-container .leaflet-routing-toolbar button:hover {
+  color: #004030;
+}
+
+.leaflet-routing-container .leaflet-control-layers-toggle,
+.leaflet-routing-container .leaflet-routing-expanded .leaflet-routing-collapse-button {
+  width: 42px;
+  height: 42px;
+  line-height: 42px;
+  font-size: 20px;
+}
