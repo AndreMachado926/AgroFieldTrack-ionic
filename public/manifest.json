@@ -1,14 +1,14 @@
 {
-  "short_name": "AFT",
-  "name": "AgroFieldTrack",
+  "short_name": "Ionic App",
+  "name": "My Ionic App",
   "icons": [
     {
-      "src": "/assets/icon/image.png",
+      "src": "public/icon/image.png",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
     {
-      "src": "/assets/icon/image.png",
+      "src": "public/icon/image.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
@@ -16,6 +16,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#0B5D4F",
-  "background_color": "#F2E8CF"
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff"
 }
