@@ -61,7 +61,7 @@ interface ChatCookie {
 
 const ChatPage: React.FC = () => {
     const { user2_id } = useParams<{ user2_id?: string }>();
-    
+
     const [chat, setChat] = useState<Chat | null>(null);
     const [mensagens, setMensagens] = useState<Mensagem[]>([]);
     const [input, setInput] = useState("");
@@ -72,7 +72,7 @@ const ChatPage: React.FC = () => {
     const [animalsError, setAnimalsError] = useState<string | null>(null);
     const [showMapModal, setShowMapModal] = useState(false);
     const [selectedAnimalForMap, setSelectedAnimalForMap] = useState<AnimalInfo | null>(null);
-    const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const mensagensRef = useRef<Mensagem[]>([]);
     const socketRef = useRef<Socket | null>(null);
@@ -158,10 +158,10 @@ const ChatPage: React.FC = () => {
             const data: AnimalInfo[] = Array.isArray(payload.data)
                 ? payload.data
                 : Array.isArray(payload)
-                ? payload
-                : payload.data
-                    ? payload.data
-                    : [];
+                    ? payload
+                    : payload.data
+                        ? payload.data
+                        : [];
             setAnimals(data);
         } catch (err: any) {
             console.error("Erro ao buscar animais:", err);
@@ -253,7 +253,7 @@ const ChatPage: React.FC = () => {
             showAlternatives: false,
             addWaypoints: false,
             fitSelectedRoute: true,
-            createMarker: function() { return null; },
+            createMarker: function () { return null; },
             lineOptions: {
                 styles: [{ color: '#007AFF', weight: 6 }]
             }
@@ -282,8 +282,9 @@ const ChatPage: React.FC = () => {
 
             mapRef.current = map;
 
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: '&copy; OpenStreetMap contributors',
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap & CartoDB',
+                noWrap: true,
             }).addTo(map);
 
             // Adicionar marcador do animal
@@ -503,7 +504,7 @@ const ChatPage: React.FC = () => {
                             key={i}
                             className={`message-row ${m.sender_id === currentUserId ? "message-self" : "message-other"}`}
                         >
-                                    <span className="message-bubble">
+                            <span className="message-bubble">
                                 {m.animal_id && typeof m.animal_id !== "string" ? (
                                     <div className="animal-card">
                                         <div className="animal-card-title">Informações do animal</div>
