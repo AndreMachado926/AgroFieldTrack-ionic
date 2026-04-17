@@ -153,6 +153,28 @@
   height: 100%;
 }
 
+.leaflet-routing-container a,
+.leaflet-routing-container button,
+.leaflet-routing-container .leaflet-routing-collapse-button,
+.leaflet-routing-container .leaflet-routing-container-close {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  line-height: 42px;
+  font-size: 20px;
+}
+
+.leaflet-routing-container .leaflet-routing-collapse-button,
+.leaflet-routing-container .leaflet-routing-container-close {
+  border-radius: 8px;
+}
+
+.leaflet-routing-container button:hover,
+.leaflet-routing-container a:hover {
+  color: #004030;
+}
+
 .leaflet-routing-container .leaflet-routing-toolbar a,
 .leaflet-routing-container .leaflet-routing-toolbar button {
   width: 36px;

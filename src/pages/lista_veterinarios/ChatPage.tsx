@@ -239,6 +239,7 @@ const ChatPage: React.FC = () => {
         if (routingControlRef.current) {
             mapRef.current.removeControl(routingControlRef.current);
             routingControlRef.current = null;
+            return;
         }
 
         const waypoints = [
