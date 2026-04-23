@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { IonContent, IonPage, IonTitle, IonToolbar, IonHeader, IonButtons, IonButton, IonIcon } from '@ionic/react';
 import { io, Socket } from 'socket.io-client';
 import { arrowBackOutline } from 'ionicons/icons';
+const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
 const ArduinoPage: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
@@ -9,7 +10,7 @@ const ArduinoPage: React.FC = () => {
 
   useEffect(() => {
     // Connect to the backend Socket.IO server
-    const newSocket = io('http://localhost:3000'); // Adjust URL if needed
+    const newSocket = io(API_BASE); // Adjust URL if needed
     setSocket(newSocket);
 
     // Listen for sensorData event
@@ -19,7 +20,6 @@ const ArduinoPage: React.FC = () => {
       setLogs(prevLogs => [...prevLogs, logEntry]);
     });
 
-    // Cleanup on unmount
     return () => {
       newSocket.disconnect();
     };
