@@ -8,43 +8,31 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonSegment,
-  IonSegmentButton,
-  IonLabel,
   IonContent,
   IonRefresher,
   IonRefresherContent,
-  IonCard,
-  IonItem,
-  IonAvatar,
-  IonNote,
-  IonTabBar,
-  IonTabButton,
   IonModal,
-  IonInput,
-  IonTitle,
-  IonList,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonTextarea
+  IonTitle
 } from "@ionic/react";
+import { Box, Card as MuiCard, CardContent, CardActions, Typography, Button as MuiButton, IconButton as MuiIconButton, Tabs, Tab, TextField, Fab } from "@mui/material";
+import AddIcon from '@mui/icons-material/Add';
+import ShareIcon from '@mui/icons-material/Share';
+import PetsIcon from '@mui/icons-material/Pets';
+import ForestIcon from '@mui/icons-material/Forest';
 import FooterNav from "../../components/FooterNav";
+import HeaderNav from "../../components/HeaderNav";
 import {
   settingsOutline,
-  pawOutline,
   mapOutline,
   cartOutline,
   listOutline,
   sparklesOutline,
   personOutline,
   leafOutline,
-  addOutline,
   bandageOutline,
   logOutOutline,
   shareOutline
 } from "ionicons/icons";
-import { searchCircleOutline } from 'ionicons/icons';
 import { jwtDecode } from "jwt-decode";
 import { useHistory } from "react-router-dom";
 import L from 'leaflet';
@@ -630,48 +618,48 @@ const AnimaisPage: React.FC = () => {
   // Update the remedios tab content in the modal
   {
     modalTab === 'remedios' && (
-      <div style={{ padding: 12 }}>
-        <h4 style={{ marginTop: 0, color: '#004030' }}>Remédios / Vacinas</h4>
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" sx={{ mt: 0, mb: 2, color: '#004030', fontWeight: 700 }}>Remédios / Vacinas</Typography>
 
         {loadingRemedios && (
-          <p style={{ color: '#666' }}>Carregando remédios...</p>
+          <Typography sx={{ color: '#666' }}>Carregando remédios...</Typography>
         )}
 
         {remediosError && (
-          <p style={{ color: 'crimson' }}>{remediosError}</p>
+          <Typography sx={{ color: 'crimson' }}>{remediosError}</Typography>
         )}
 
         {!loadingRemedios && !remediosError && remedios.length === 0 && (
-          <p style={{ color: '#666' }}>Nenhum remédio registrado.</p>
+          <Typography sx={{ color: '#666' }}>Nenhum remédio registrado.</Typography>
         )}
 
         {remedios.map(remedio => (
-          <IonCard key={remedio._id} style={{
-            backgroundColor: "#DCD0A8",
-            borderRadius: "12px",
-            margin: "8px 0",
-            padding: "12px"
-          }}>
-            <h5 style={{ margin: 0, color: '#004030' }}>{remedio.nome}</h5>
-            <p style={{ margin: "4px 0", fontSize: '14px', color: '#004030' }}>
-              Data: {new Date(remedio.data).toLocaleDateString()}
-            </p>
-            {remedio.observacoes && (
-              <p style={{ margin: "4px 0", fontSize: '13px', color: '#004030b0' }}>
-                {remedio.observacoes}
-              </p>
-            )}
-          </IonCard>
+          <MuiCard key={remedio._id} sx={{ backgroundColor: '#DCD0A8', borderRadius: 2, mb: 1 }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ color: '#004030', fontWeight: 700, mb: 0.5 }}>
+                {remedio.nome}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#004030', mb: 0.5 }}>
+                Data: {new Date(remedio.data).toLocaleDateString()}
+              </Typography>
+              {remedio.observacoes && (
+                <Typography variant="body2" sx={{ color: '#004030b0' }}>
+                  {remedio.observacoes}
+                </Typography>
+              )}
+            </CardContent>
+          </MuiCard>
         ))}
 
-        <IonButton
-          expand="block"
+        <MuiButton
+          fullWidth
+          variant="contained"
           onClick={() => setShowAddRemedioModal(true)}
-          style={{ marginTop: 16 }}
+          sx={{ mt: 2, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
         >
           Adicionar Remédio
-        </IonButton>
-      </div>
+        </MuiButton>
+      </Box>
     )
   }
 
@@ -850,6 +838,17 @@ const AnimaisPage: React.FC = () => {
     }
     return false;
   }
+  const handleSegmentChange = (_event: React.SyntheticEvent, newValue: string) => {
+    setSegment(newValue);
+  };
+
+  const showEmptyState = (icon: React.ReactNode, message: string) => (
+    <Box sx={{ width: '100%', p: 3, textAlign: 'center', color: 'text.secondary', bgcolor: '#fffdf6', borderRadius: 3, boxShadow: '0 10px 26px rgba(0,0,0,0.08)' }}>
+      <Box sx={{ mb: 1 }}>{icon}</Box>
+      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{message}</Typography>
+    </Box>
+  );
+
   const handleLogout = async () => {
     try {
       await axios.post(`${API_BASE}/logout`);
@@ -863,55 +862,31 @@ const AnimaisPage: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar
-          style={{
-            ["--background" as any]: "#FFF9E5",
-            ["--color" as any]: "#004030",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "6px 12px",
-          } as React.CSSProperties}
-        >
-          <img
-            src={logo}
-            alt="perfil"
-            style={{
-              borderRadius: "50%",
-              width: 40,
-              height: 40,
-              border: "2px solid #DCD0A8",
-              objectFit: "cover",
-            }}
-          />
-
-          <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
-            {/* Botão de Settings */}
-            <IonButton fill="clear" href="/#/settings">
-              <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
-            </IonButton>
-
-            {/* Botão de Logout */}
-            <IonButton fill="clear" onClick={handleLogout}>
-              <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
+      <HeaderNav onLogout={handleLogout} />
 
       <IonContent>
-        <IonSegment value={segment} onIonChange={(e: any) => {
-          const val = e?.detail?.value;
-          setSegment(typeof val === 'string' ? val : String(val ?? 'animais'));
-        }}>
-          <IonSegmentButton value="animais">
-            <IonLabel>Animais</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="plantacoes">
-            <IonLabel>Plantações</IonLabel>
-          </IonSegmentButton>
-        </IonSegment>
+        <Box sx={{ mx: 2, mt: 2, mb: 1, borderRadius: 3, backgroundColor: '#FFF9E5', boxShadow: '0 12px 32px rgba(0,0,0,0.08)' }}>
+          <Tabs
+            value={segment}
+            onChange={handleSegmentChange}
+            textColor="inherit"
+            indicatorColor="primary"
+            variant="fullWidth"
+            aria-label="Segment tabs"
+            sx={{
+              '& .MuiTab-root': {
+                color: '#004030',
+                fontWeight: 600,
+              },
+              '& .Mui-selected': {
+                color: '#004030',
+              }
+            }}
+          >
+            <Tab value="animais" icon={<PetsIcon sx={{ color: '#004030' }} />} iconPosition="start" label="Animais" />
+            <Tab value="plantacoes" icon={<ForestIcon sx={{ color: '#004030' }} />} iconPosition="start" label="Plantações" />
+          </Tabs>
+        </Box>
 
         <IonRefresher slot="fixed" onIonRefresh={fetchAnimais}>
           <IonRefresherContent
@@ -921,147 +896,73 @@ const AnimaisPage: React.FC = () => {
           />
         </IonRefresher>
 
-        <IonGrid>
-          <IonRow>
-            {segment === "animais" && animais.length === 0 && (
-              <IonCol>
-                <div style={{ padding: 16, textAlign: 'center', color: '#666' }}>
-                  <IonIcon name="paw-outline" style={{ fontSize: '48px', marginBottom: '8px', color: '#004030' }} />
-                  <p style={{ margin: 0, fontSize: '16px' }}>
-                    Nenhum animal encontrado.
-                  </p>
-                </div>
-              </IonCol>
-            )}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 1, px: 2, pb: 14 }}>
+          {segment === 'animais' && animais.length === 0 && showEmptyState(<PetsIcon sx={{ fontSize: 56, color: '#004030' }} />, 'Nenhum animal encontrado.')}
+          {segment === 'plantacoes' && plantacoes.length === 0 && showEmptyState(<ForestIcon sx={{ fontSize: 56, color: '#004030' }} />, 'Nenhuma plantação encontrada.')}
 
-            {segment === "plantacoes" && plantacoes.length === 0 && (
-              <IonCol>
-                <div style={{ padding: 16, textAlign: 'center', color: '#666' }}>
-                  <IonIcon name="leaf-outline" style={{ fontSize: '48px', marginBottom: '8px', color: '#004030' }} />
-                  <p style={{ margin: 0, fontSize: '16px' }}>
-                    Nenhuma plantação encontrada.
-                  </p>
-                </div>
-              </IonCol>
-            )}
-
-            {segment === "animais" ? animais.map((item) => (
-              <IonCol size="6" key={item._id}>
-                <IonCard
-                  button
-                  onClick={() => handleAnimalClick(item)}
-                  style={{
-                    margin: "8px",
-                    background: "#D1E8E2",
-                    borderRadius: "12px",
-                    overflow: "hidden",
-                    position: "relative",
-                    paddingBottom: "56.25%" // 16:9 aspect ratio
-                  }}
-                >
-                  <div style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: `url(${logo}) no-repeat center center`,
-                    backgroundSize: "cover",
-                    opacity: 0.1,
-                    zIndex: 1
-                  }} />
-                  <div style={{ position: "absolute", top: 8, right: 8, zIndex: 3 }}>
-                    <IonButton
-                      fill="clear"
-                      onClick={(e) => handleShareAnimal(e, item)}
-                      style={{
-                        '--padding-start': '4px',
-                        '--padding-end': '4px',
-                        '--min-height': 'auto',
-                        height: '32px',
-                        width: '32px'
-                      }}
+          {segment === 'animais' ? animais.map((item) => (
+            <Box key={item._id}>
+              <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#E9F8F3' }}>
+                <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />
+                <CardContent sx={{ position: 'relative', zIndex: 1, flex: 1, pb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ color: '#004030', fontWeight: 700 }}>{item.nome}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{`Raça: ${item.raca} • ${item.idade} anos`}</Typography>
+                    </Box>
+                    <MuiIconButton
+                      size="small"
+                      sx={{ bgcolor: '#FFF9E5', color: '#004030', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                      onClick={(e) => { e.stopPropagation(); handleShareAnimal(e, item); }}
                     >
-                      <IonIcon
-                        icon={shareOutline}
-                        style={{ fontSize: '20px', color: '#004030' }}
-                      />
-                    </IonButton>
-                  </div>
-                  <div style={{ position: "relative", zIndex: 2, padding: "16px" }}>
-                    <h2 style={{
-                      margin: 0,
-                      fontSize: "18px",
-                      color: "#004030",
-                      fontWeight: "bold"
-                    }}>
-                      {item.nome}
-                    </h2>
-                    <p style={{
-                      margin: "4px 0",
-                      fontSize: "14px",
-                      color: "#004030",
-                      fontWeight: "medium"
-                    }}>
-                      {`Raça: ${item.raca} | Idade: ${item.idade} anos`}
-                    </p>
-                    <IonNote style={{ fontSize: "12px", color: "#999" }}>
-                      {`Última localização: ${item.localizacaoX}, ${item.localizacaoY}`}
-                    </IonNote>
-                  </div>
-                </IonCard>
-              </IonCol>
-            )) : plantacoes.map((item) => (
-              <IonCol size="6" key={item._id}>
-                <IonCard
-                  button
-                  onClick={() => handlePlantacaoClick(item)}
-                  style={{
-                    margin: "8px",
-                    background: "#F9EBD7",
-                    borderRadius: "12px",
-                    overflow: "hidden",
-                    position: "relative",
-                    paddingBottom: "56.25%" // 16:9 aspect ratio
-                  }}
-                >
-                  <div style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: `url(${logo}) no-repeat center center`,
-                    backgroundSize: "cover",
-                    opacity: 0.1,
-                    zIndex: 1
-                  }} />
-                  <div style={{ position: "relative", zIndex: 2, padding: "16px" }}>
-                    <h2 style={{
-                      margin: 0,
-                      fontSize: "18px",
-                      color: "#7D5B29",
-                      fontWeight: "bold"
-                    }}>
-                      {item.planta}
-                    </h2>
-                    <p style={{
-                      margin: "4px 0",
-                      fontSize: "14px",
-                      color: "#7D5B29",
-                      fontWeight: "medium"
-                    }}>
-                      {`Planta: ${item.planta}`}
-                    </p>
-                    <IonNote style={{ fontSize: "12px", color: "#999" }}>
-                      {`Criado em: ${new Date(item.createdAt || '').toLocaleDateString()}`}
-                    </IonNote>
-                  </div>
-                </IonCard>
-              </IonCol>
-            ))}
-          </IonRow>
-        </IonGrid>
+                      <ShareIcon fontSize="small" sx={{ color: '#004030' }} />
+                    </MuiIconButton>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    {`Última localização: ${item.localizacaoX ?? '—'}, ${item.localizacaoY ?? '—'}`}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
+                  <MuiButton
+                    fullWidth
+                    variant="contained"
+                    sx={{ backgroundColor: '#004030', color: '#FFF9E5', '&:hover': { backgroundColor: '#3A8772' } }}
+                    onClick={() => handleAnimalClick(item)}
+                  >
+                    Ver detalhes
+                  </MuiButton>
+                </CardActions>
+              </MuiCard>
+            </Box>
+          )) : plantacoes.map((item) => (
+            <Box key={item._id}>
+              <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#FFF6EA' }}>
+                <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />
+                <CardContent sx={{ position: 'relative', zIndex: 1, flex: 1, pb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ color: '#004030', fontWeight: 700 }}>{item.planta}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{`Planta: ${item.planta}`}</Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    {item.createdAt ? `Criado em: ${new Date(item.createdAt || '').toLocaleDateString()}` : 'Sem data registrada'}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
+                  <MuiButton
+                    fullWidth
+                    variant="contained"
+                    sx={{ backgroundColor: '#004030', color: '#FFF9E5', '&:hover': { backgroundColor: '#3A8772' } }}
+                    onClick={() => handlePlantacaoClick(item)}
+                  >
+                    Ver plantação
+                  </MuiButton>
+                </CardActions>
+              </MuiCard>
+            </Box>
+          ))}
+        </Box>
       </IonContent>
 
       {/* Add Modal - REMOVED - Now using separate pages */}
@@ -1096,19 +997,23 @@ const AnimaisPage: React.FC = () => {
             </IonButtons>
           </IonToolbar>
           {/* Tabs (segment) */}
-          <IonToolbar style={{ '--background': '#FFF9E5', padding: '6px 12px' }}>
-            <IonSegment value={modalTab} onIonChange={(e: any) => setModalTab(e.detail.value)}>
-              <IonSegmentButton value="info">
-                <IonLabel>Info</IonLabel>
-              </IonSegmentButton>
-              <IonSegmentButton value="mapa">
-                <IonLabel>Mapa</IonLabel>
-              </IonSegmentButton>
-              <IonSegmentButton value="remedios">
-                <IonLabel>Remédios</IonLabel>
-              </IonSegmentButton>
-            </IonSegment>
-          </IonToolbar>
+          <Box sx={{ px: 2, pt: 1, pb: 2, bgcolor: '#FFF9E5' }}>
+            <Tabs
+              value={modalTab}
+              onChange={(_, value) => setModalTab(value)}
+              variant="fullWidth"
+              textColor="inherit"
+              indicatorColor="primary"
+              sx={{
+                '& .MuiTab-root': { color: '#004030', fontWeight: 600 },
+                '& .Mui-selected': { color: '#004030' }
+              }}
+            >
+              <Tab value="info" label="Info" />
+              <Tab value="mapa" label="Mapa" />
+              <Tab value="remedios" label="Remédios" />
+            </Tabs>
+          </Box>
         </IonHeader>
 
         <IonContent>
@@ -1205,31 +1110,31 @@ const AnimaisPage: React.FC = () => {
               )}
 
               {remedios.map(remedio => (
-                <IonCard key={remedio._id} style={{
-                  backgroundColor: "#DCD0A8",
-                  borderRadius: "12px",
-                  margin: "8px 0",
-                  padding: "12px"
-                }}>
-                  <h5 style={{ margin: 0, color: '#004030' }}>{remedio.nome}</h5>
-                  <p style={{ margin: "4px 0", fontSize: '14px', color: '#004030' }}>
-                    Data: {new Date(remedio.data).toLocaleDateString()}
-                  </p>
-                  {remedio.observacoes && (
-                    <p style={{ margin: "4px 0", fontSize: '13px', color: '#004030b0' }}>
-                      {remedio.observacoes}
-                    </p>
-                  )}
-                </IonCard>
+                <MuiCard key={remedio._id} sx={{ backgroundColor: '#DCD0A8', borderRadius: 2, mb: 1 }}>
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography variant="subtitle1" sx={{ color: '#004030', fontWeight: 700, mb: 0.5 }}>
+                      {remedio.nome}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#004030', mb: 0.5 }}>
+                      Data: {new Date(remedio.data).toLocaleDateString()}
+                    </Typography>
+                    {remedio.observacoes && (
+                      <Typography variant="body2" sx={{ color: '#004030b0' }}>
+                        {remedio.observacoes}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </MuiCard>
               ))}
 
-              <IonButton
-                expand="block"
+              <MuiButton
+                fullWidth
+                variant="contained"
                 onClick={() => setShowAddRemedioModal(true)}
-                style={{ marginTop: 16 }}
+                sx={{ mt: 2, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
               >
                 Adicionar Remédio
-              </IonButton>
+              </MuiButton>
             </div>
           )}
         </IonContent>
@@ -1252,53 +1157,41 @@ const AnimaisPage: React.FC = () => {
         </IonHeader>
 
         <IonContent style={{ '--background': '#FFF9E5' }}>
-          <div style={{ padding: 16 }}>
-            <div style={{ marginBottom: 16 }}>
-              <IonLabel style={{ color: '#004030' }}>Nome do Remédio *</IonLabel>
-              <IonInput
-                value={newRemedio.nome}
-                onIonChange={e => setNewRemedio(prev => ({ ...prev, nome: e.detail.value || '' }))}
-                placeholder="Digite o nome do remédio"
-                style={{
-                  '--background': '#DCD0A8',
-                  '--color': '#004030',
-                  '--padding-start': '10px',
-                  '--padding-end': '10px',
-                  marginTop: 4,
-                  borderRadius: 8
-                }}
-              />
-            </div>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1, color: '#004030', fontWeight: 700 }}>
+              Nome do Remédio *</Typography>
+            <TextField
+              fullWidth
+              variant="filled"
+              value={newRemedio.nome}
+              onChange={e => setNewRemedio(prev => ({ ...prev, nome: e.target.value }))}
+              placeholder="Digite o nome do remédio"
+              sx={{ mb: 2, '& .MuiFilledInput-root': { bgcolor: '#DCD0A8' } }}
+            />
 
-            <div style={{ marginBottom: 16 }}>
-              <IonLabel style={{ color: '#004030' }}>Observações</IonLabel>
-              <IonTextarea
-                value={newRemedio.observacoes}
-                onIonChange={e => setNewRemedio(prev => ({ ...prev, observacoes: e.detail.value || '' }))}
-                placeholder="Observações adicionais"
-                style={{
-                  '--background': '#DCD0A8',
-                  '--color': '#004030',
-                  '--padding-start': '10px',
-                  '--padding-end': '10px',
-                  marginTop: 4,
-                  borderRadius: 8
-                }}
-              />
-            </div>
+            <Typography variant="subtitle1" sx={{ mb: 1, color: '#004030', fontWeight: 700 }}>
+              Observações</Typography>
+            <TextField
+              fullWidth
+              multiline
+              minRows={4}
+              variant="filled"
+              value={newRemedio.observacoes}
+              onChange={e => setNewRemedio(prev => ({ ...prev, observacoes: e.target.value }))}
+              placeholder="Observações adicionais"
+              sx={{ mb: 3, '& .MuiFilledInput-root': { bgcolor: '#DCD0A8' } }}
+            />
 
-            <IonButton
-              expand="block"
+            <MuiButton
+              fullWidth
+              variant="contained"
               onClick={handleCreateRemedio}
               disabled={!newRemedio.nome}
-              style={{
-                '--background': '#4A9782',
-                marginTop: 20
-              }}
+              sx={{ bgcolor: '#4A9782', '&:hover': { bgcolor: '#3A8772' } }}
             >
               Adicionar Remédio
-            </IonButton>
-          </div>
+            </MuiButton>
+          </Box>
         </IonContent>
       </IonModal>
 
@@ -1316,50 +1209,50 @@ const AnimaisPage: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         <IonContent style={{ '--background': '#FFF9E5' }}>
-          {loadingChats ? (
-            <div style={{ padding: 16, textAlign: 'center', color: '#004030' }}>Carregando contactos...</div>
-          ) : shareChats.length === 0 ? (
-            <div style={{ padding: 16, textAlign: 'center', color: '#666' }}>Nenhum contacto disponível</div>
-          ) : (
-            <IonList style={{ background: '#FFF9E5' }}>
-              {shareChats.map((chat: any) => (
-                <IonItem
-                  key={chat._id || chat.id}
-                  button
-                  onClick={() => sendAnimalToChat(chat)}
-                  style={{
-                    '--background': '#D1E8E2',
-                    borderRadius: '8px',
-                    margin: '8px 12px',
-                    '--padding-start': '12px',
-                    '--padding-end': '12px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '12px 0' }}>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, color: '#004030', fontWeight: '500' }}>
+          <Box sx={{ p: 2 }}>
+            {loadingChats ? (
+              <Typography sx={{ textAlign: 'center', color: '#004030' }}>Carregando contactos...</Typography>
+            ) : shareChats.length === 0 ? (
+              <Typography sx={{ textAlign: 'center', color: '#666' }}>Nenhum contacto disponível</Typography>
+            ) : (
+              <Box sx={{ display: 'grid', gap: 2 }}>
+                {shareChats.map((chat: any) => (
+                  <Box
+                    key={chat._id || chat.id}
+                    onClick={() => sendAnimalToChat(chat)}
+                    sx={{
+                      cursor: 'pointer',
+                      px: 2,
+                      py: 1.5,
+                      borderRadius: 2,
+                      bgcolor: '#D1E8E2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      '&:hover': { bgcolor: '#C6DDD4' }
+                    }}
+                  >
+                    <Box>
+                      <Typography sx={{ color: '#004030', fontWeight: 600 }}>
                         {chat.nome_completo || chat.name || chat.username || chat.nome || 'Contacto'}
-                      </p>
+                      </Typography>
                       {chat.especializacao && (
-                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>
+                        <Typography sx={{ mt: 0.5, color: '#666', fontSize: 13 }}>
                           {chat.especializacao}
-                        </p>
+                        </Typography>
                       )}
                       {chat.email && (
-                        <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>
+                        <Typography sx={{ mt: 0.5, color: '#666', fontSize: 13 }}>
                           {chat.email}
-                        </p>
+                        </Typography>
                       )}
-                    </div>
-                    <IonIcon
-                      icon={shareOutline}
-                      style={{ fontSize: '20px', color: '#004030', marginLeft: '12px' }}
-                    />
-                  </div>
-                </IonItem>
-              ))}
-            </IonList>
-          )}
+                    </Box>
+                    <ShareIcon sx={{ color: '#004030', fontSize: 22 }} />
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Box>
         </IonContent>
       </IonModal>
 
@@ -1390,40 +1283,51 @@ const AnimaisPage: React.FC = () => {
               <IonButton onClick={() => setShowPlantacaoModal(false)}>Fechar</IonButton>
             </IonButtons>
           </IonToolbar>
-          <IonToolbar style={{ '--background': '#FFF9E5', padding: '6px 12px' }}>
-            <IonSegment value={plantacaoModalTab} onIonChange={(e: any) => setPlantacaoModalTab(e.detail.value)}>
-              <IonSegmentButton value="info">
-                <IonLabel>Info</IonLabel>
-              </IonSegmentButton>
-              <IonSegmentButton value="mapa">
-                <IonLabel>Mapa</IonLabel>
-              </IonSegmentButton>
-            </IonSegment>
-          </IonToolbar>
+          <Box sx={{ px: 2, pt: 1, pb: 2, bgcolor: '#FFF9E5' }}>
+            <Tabs
+              value={plantacaoModalTab}
+              onChange={(_, value) => setPlantacaoModalTab(value)}
+              variant="fullWidth"
+              textColor="inherit"
+              indicatorColor="primary"
+              sx={{
+                '& .MuiTab-root': { color: '#004030', fontWeight: 600 },
+                '& .Mui-selected': { color: '#004030' }
+              }}
+            >
+              <Tab value="info" label="Info" />
+              <Tab value="mapa" label="Mapa" />
+            </Tabs>
+          </Box>
         </IonHeader>
 
         <IonContent>
           {plantacaoModalTab === 'info' && selectedPlantacao && (
-            <div style={{ padding: 16 }}>
-              <h3 style={{ marginTop: 0 }}>{selectedPlantacao.planta}</h3>
-
-              {/* Mostrar localização pontual (se existir) */}
-
-              {/* Se houver pontos do polígono, mostrar resumo (centro e número de vértices) */}
-              {Array.isArray(selectedPlantacao.pontosx) && Array.isArray(selectedPlantacao.pontosy) && selectedPlantacao.pontosx.length > 0 && selectedPlantacao.pontosy.length > 0 ? (
-                (() => {
-                  const c = centroidFromPoints(selectedPlantacao.pontosx, selectedPlantacao.pontosy);
-                  return (
-                    <div>
-                      <p><strong>Polígono:</strong> {Math.min(selectedPlantacao.pontosx.length, selectedPlantacao.pontosy.length)} pontos</p>
-                      <p><strong>Centro aproximado:</strong> {c ? `${c[0].toFixed(6)}, ${c[1].toFixed(6)}` : '—'}</p>
-                    </div>
-                  );
-                })()
-              ) : null}
-
-              <p><strong>Criado em:</strong> {selectedPlantacao.createdAt ? new Date(selectedPlantacao.createdAt).toLocaleString() : '—'}</p>
-            </div>
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h5" sx={{ color: '#004030', fontWeight: 700, mb: 2 }}>
+                {selectedPlantacao.planta}
+              </Typography>
+              <MuiCard sx={{ bgcolor: '#FFF6EA', borderRadius: 2, mb: 2 }}>
+                <CardContent>
+                  <Typography variant="body1" sx={{ mb: 1, color: '#004030' }}>
+                    <strong>Polígono:</strong> {Array.isArray(selectedPlantacao.pontosx) && Array.isArray(selectedPlantacao.pontosy) && selectedPlantacao.pontosx.length > 0 && selectedPlantacao.pontosy.length > 0
+                      ? `${Math.min(selectedPlantacao.pontosx.length, selectedPlantacao.pontosy.length)} pontos`
+                      : 'Sem dados de pontos'}
+                  </Typography>
+                  {Array.isArray(selectedPlantacao.pontosx) && Array.isArray(selectedPlantacao.pontosy) && selectedPlantacao.pontosx.length > 0 && selectedPlantacao.pontosy.length > 0 && (
+                    <Typography variant="body2" sx={{ color: '#4A5732' }}>
+                      <strong>Centro aproximado:</strong> {(() => {
+                        const c = centroidFromPoints(selectedPlantacao.pontosx, selectedPlantacao.pontosy);
+                        return c ? `${c[0].toFixed(6)}, ${c[1].toFixed(6)}` : '—';
+                      })()}
+                    </Typography>
+                  )}
+                </CardContent>
+              </MuiCard>
+              <Typography variant="body2" sx={{ color: '#004030' }}>
+                <strong>Criado em:</strong> {selectedPlantacao.createdAt ? new Date(selectedPlantacao.createdAt).toLocaleString() : '—'}
+              </Typography>
+            </Box>
           )}
 
           {plantacaoModalTab === 'mapa' && (
@@ -1435,31 +1339,13 @@ const AnimaisPage: React.FC = () => {
       </IonModal>
 
       {/* Floating Action Button */}
-      <IonButton
-        routerLink={segment === 'animais' ? '/adicionar-animal' : '/adicionar-plantacao'}
-        style={{
-          position: 'fixed',
-          bottom: '80px', // above navbar
-          right: '20px',  // right side
-          '--border-radius': '50%',
-          '--padding-start': '0',
-          '--padding-end': '0',
-          width: '56px',
-          height: '56px',
-          '--background': '#004030',
-          '--background-activated': '#3A8772',
-          zIndex: 1000,
-        }}
+      <Fab
+        aria-label="add"
+        onClick={() => history.push(segment === 'animais' ? '/adicionar-animal' : '/adicionar-plantacao')}
+        sx={{ position: 'fixed', bottom: 88, right: 20, zIndex: 1100, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
       >
-        <IonIcon
-          icon={addOutline}
-          style={{
-            fontSize: '24px',
-            marginInline: 'auto',
-            color: '#FFF9E5',
-          }}
-        />
-      </IonButton>
+        <AddIcon />
+      </Fab>
 
       {/* MENU INFERIOR - UMA SÓ LINHA */}
       <FooterNav />

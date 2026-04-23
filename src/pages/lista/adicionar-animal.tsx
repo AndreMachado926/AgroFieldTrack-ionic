@@ -8,28 +8,10 @@ import {
   IonButton,
   IonIcon,
   IonContent,
-  IonList,
-  IonItem,
-  IonInput,
-  IonTitle,
-  IonFooter,
-  IonLabel,
-  IonSegment,
-  IonSegmentButton,
-  IonModal,
-  IonCard,
-  IonTextarea
+  IonTitle
 } from "@ionic/react";
-import {
-  arrowBackOutline,
-  pawOutline,
-  mapOutline,
-  cartOutline,
-  listOutline,
-  sparklesOutline,
-  personOutline,
-  bandageOutline
-} from "ionicons/icons";
+import { Box, Card, CardContent, TextField, Button, Typography } from "@mui/material";
+import { arrowBackOutline } from "ionicons/icons";
 import { useHistory, useLocation, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import L from 'leaflet';
@@ -179,44 +161,55 @@ const AdicionarAnimal: React.FC = () => {
       </IonHeader>
 
       <IonContent style={{ '--background': '#FFF9E5' }}>
-        <IonList style={{ background: '#FFF9E5' }}>
-          <IonItem>
-            <IonInput
-              label="Nome"
-              labelPlacement="stacked"
-              placeholder="Nome do animal"
-              value={animal.nome || ""}
-              onIonChange={(e) => setAnimal(prev => ({ ...prev, nome: e.detail.value || "" }))}
-            />
-          </IonItem>
-          <IonItem>
-            <IonInput
-              label="Raça"
-              labelPlacement="stacked"
-              placeholder="Raça do animal"
-              value={animal.raca || ""}
-              onIonChange={(e) => setAnimal(prev => ({ ...prev, raca: e.detail.value || "" }))}
-            />
-          </IonItem>
-          <IonItem>
-            <IonInput
-              type="number"
-              label="Idade"
-              labelPlacement="stacked"
-              placeholder="Idade em anos"
-              value={animal.idade?.toString() || "0"}
-              onIonChange={(e) => setAnimal(prev => ({ ...prev, idade: parseInt(e.detail.value || "0") }))}
-            />
-          </IonItem>
-        </IonList>
+        <Box sx={{ px: 2, py: 4, display: 'flex', justifyContent: 'center' }}>
+          <Card sx={{ width: '100%', maxWidth: 640, borderRadius: 3, bgcolor: '#FFFDF6', boxShadow: '0 18px 46px rgba(0,0,0,0.08)' }}>
+            <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+              <Typography variant="h5" component="h1" sx={{ mb: 1, color: '#004030', fontWeight: 700 }}>
+                {id ? 'Editar Animal' : 'Adicionar Animal'}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: '#4A5732' }}>
+                Insira os dados do animal para registar ou atualizar.
+              </Typography>
 
-        <IonButton
-          expand="block"
-          onClick={handleSubmit}
-          style={{ '--background': '#004030', color: '#FFF9E5', margin: '20px' }}
-        >
-          {id ? 'Atualizar Animal' : 'Salvar Animal'}
-        </IonButton>
+              <Box component="form" sx={{ display: 'grid', gap: 2 }}>
+                <TextField
+                  label="Nome do animal"
+                  variant="filled"
+                  fullWidth
+                  value={animal.nome || ""}
+                  onChange={(e) => setAnimal(prev => ({ ...prev, nome: e.target.value }))}
+                  sx={{ '& .MuiFilledInput-root': { bgcolor: '#FFF9E5' } }}
+                />
+                <TextField
+                  label="Raça"
+                  variant="filled"
+                  fullWidth
+                  value={animal.raca || ""}
+                  onChange={(e) => setAnimal(prev => ({ ...prev, raca: e.target.value }))}
+                  sx={{ '& .MuiFilledInput-root': { bgcolor: '#FFF9E5' } }}
+                />
+                <TextField
+                  label="Idade"
+                  variant="filled"
+                  type="number"
+                  fullWidth
+                  value={animal.idade?.toString() ?? ""}
+                  onChange={(e) => setAnimal(prev => ({ ...prev, idade: parseInt(e.target.value || "0") }))}
+                  sx={{ '& .MuiFilledInput-root': { bgcolor: '#FFF9E5' } }}
+                />
+              </Box>
+
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={handleSubmit}
+                sx={{ mt: 3, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
+              >
+                {id ? 'Atualizar Animal' : 'Salvar Animal'}
+              </Button>
+            </CardContent>
+          </Card>
+        </Box>
       </IonContent>
     </IonPage>
   );

@@ -19,6 +19,7 @@ import {
   Logout as LogoutIcon
 } from "@mui/icons-material";
 import FooterNav from "../../components/FooterNav";
+import HeaderNav from "../../components/HeaderNav";
 import { jwtDecode } from "jwt-decode";
 
 interface DecodedToken {
@@ -246,31 +247,10 @@ const VeterinariosPage: React.FC = () => {
   );
 
   return (
-    <Box sx={{ backgroundColor: "#FFF9E5", color: "#004030", minHeight: '100vh' }}>
-      <AppBar position="static" sx={{ backgroundColor: "#FFF9E5", color: "#004030", boxShadow: 'none', borderBottom: '1px solid #DCD0A8' }}>
-        <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2 }}>
-          <Avatar
-            src={logo}
-            alt="perfil"
-            sx={{
-              width: 40,
-              height: 40,
-              border: "2px solid #DCD0A8",
-              objectFit: "cover"
-            }}
-          />
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <IconButton href="/#/settings" sx={{ color: "#004030" }}>
-              <SettingsIcon />
-            </IconButton>
-            <IconButton onClick={handleLogout} sx={{ color: "#004030" }}>
-              <LogoutIcon />
-            </IconButton>
-          </Box>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ backgroundColor: "#FFF9E5", color: "#004030", minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <HeaderNav onLogout={handleLogout} />
 
-      <Container maxWidth="md" sx={{ py: 2, backgroundColor: "#FFF9E5" }}>
+      <Container maxWidth="md" sx={{ py: 2, backgroundColor: "#FFF9E5", flex: 1 }}>
         {loading && <Typography sx={{ color: "#004030" }}>A carregar...</Typography>}
         {error && <Typography sx={{ color: "error.main" }}>{error}</Typography>}
 

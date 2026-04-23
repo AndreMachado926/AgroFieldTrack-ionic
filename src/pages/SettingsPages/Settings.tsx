@@ -15,7 +15,7 @@ import {
   IonButton,
   IonToast,
 } from '@ionic/react';
-import { personOutline, chevronForward, arrowBackOutline } from 'ionicons/icons';
+import { personOutline, chevronForward, arrowBackOutline, hardwareChipOutline } from 'ionicons/icons';
 import '../SettingsPages/Settings.css';
 
 // 🔥 Backend
@@ -70,6 +70,11 @@ const Settings: React.FC = () => {
     window.location.href = "/#/perfil";
   };
 
+  const handleArduino = () => {
+    // Redireciona para a página do Arduino
+    window.location.href = "/#/arduino";
+  };
+
   if (isLoading) {
     return (
       <IonPage>
@@ -113,6 +118,11 @@ const Settings: React.FC = () => {
           <IonItem button onClick={handleEditProfile}>
             <IonIcon slot="start" icon={personOutline} style={{ color: '#004030' }} />
             <IonLabel style={{ color: '#004030' }}>Editar Perfil</IonLabel>
+            <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
+          </IonItem>
+          <IonItem button onClick={handleArduino}>
+            <IonIcon slot="start" icon={hardwareChipOutline} style={{ color: '#004030' }} />
+            <IonLabel style={{ color: '#004030' }}>Arduino Logs</IonLabel>
             <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
           </IonItem>
         </IonList>

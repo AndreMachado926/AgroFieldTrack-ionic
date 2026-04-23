@@ -4,20 +4,20 @@ import { io, Socket } from "socket.io-client";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { jwtDecode } from "jwt-decode";
+import logo from "../lista/logo.png";
 
 import {
     IonPage,
     IonContent,
     IonHeader,
     IonToolbar,
-    IonTitle,
+    IonButtons,
     IonButton,
     IonIcon,
-    IonLabel,
-    IonText,
-    IonButtons,
 } from "@ionic/react";
+import { Box, Typography, Button, CircularProgress } from "@mui/material";
 import FooterNav from "../../components/FooterNav";
+import HeaderNav from "../../components/HeaderNav";
 import {
     mapOutline,
     cartOutline,
@@ -282,38 +282,32 @@ const MapaAnimaisPage: React.FC = () => {
                 .custom-pin-icon img {
                     background: transparent !important;
                 }
+                .leaflet-control {
+                    margin: 10px !important;
+                    z-index: 999 !important;
+                }
             `}</style>
-            <IonHeader>
-                <IonToolbar>
-                    <IonTitle>Mapa de Animais</IonTitle>
+            <HeaderNav onLogout={handleLogout} />
 
-                    <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
-                        {/* Botão de Settings */}
-                        <IonButton fill="clear" href="/#/settings">
-                            <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
-                        </IonButton>
-
-                        {/* Botão de Logout */}
-                        <IonButton fill="clear" onClick={handleLogout}>
-                            <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
-                        </IonButton>
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
-
-            <IonContent fullscreen>
+            <IonContent fullscreen style={{ '--background': '#FFF9E5' } as any}>
                 {loading && (
-                    <IonText>
-                        <p style={{ textAlign: "center" }}>A carregar mapa...</p>
-                    </IonText>
-                )}
-                {error && (
-                    <IonText color="danger">
-                        <p style={{ textAlign: "center" }}>{error}</p>
-                    </IonText>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1, zIndex: 10, position: 'relative' }}>
+                        <CircularProgress size={28} sx={{ color: '#004030' }} />
+                        <Typography sx={{ color: '#004030' }}>A carregar mapa...</Typography>
+                    </Box>
                 )}
 
-                <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+                {error && (
+                    <Box sx={{ backgroundColor: '#FDECEA', borderRadius: 3, p: 2, m: 2, zIndex: 10, position: 'relative' }}>
+                        <Typography sx={{ color: '#B42318', textAlign: 'center' }}>{error}</Typography>
+                    </Box>
+                )}
+
+                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, px: 2, pt: 2, pb: 14, display: 'flex' }}>
+                    <Box sx={{ flex: 1, borderRadius: 3, overflow: 'hidden', boxShadow: '0 18px 34px rgba(0,0,0,0.08)', bgcolor: '#fff', position: 'relative' }}>
+                        <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+                    </Box>
+                </Box>
             </IonContent>
 
             <FooterNav />

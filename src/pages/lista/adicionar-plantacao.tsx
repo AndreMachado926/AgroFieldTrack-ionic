@@ -8,24 +8,13 @@ import {
     IonButton,
     IonIcon,
     IonContent,
-    IonList,
-    IonItem,
-    IonInput,
     IonTitle,
-    IonFooter,
-    IonLabel,
     IonSegment,
     IonSegmentButton,
-    IonCard
+    IonLabel
 } from "@ionic/react";
-import {
-    arrowBackOutline,
-    mapOutline,
-    cartOutline,
-    listOutline,
-    personOutline,
-    bandageOutline
-} from "ionicons/icons";
+import { Box, Card, CardContent, TextField, Button, Typography } from "@mui/material";
+import { arrowBackOutline } from "ionicons/icons";
 import { useHistory, useLocation, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import L from "leaflet";
@@ -468,85 +457,100 @@ const AdicionarPlantacao: React.FC = () => {
 
             <IonContent style={{ "--background": "#FFF9E5" }}>
                 {tab === "details" && selectedPlantacao ? (
-                    <div style={{ padding: "20px" }}>
-                        <IonCard style={{ "--background": "#FFF9E5", border: "1px solid #004030", borderRadius: "8px" }}>
-                            <div style={{ padding: "16px" }}>
-                                <h3 style={{ color: "#004030", marginBottom: "8px" }}>{selectedPlantacao.planta}</h3>
-                                {selectedPlantacao.nome && <p style={{ color: "#004030", marginBottom: "16px" }}>Nome: {selectedPlantacao.nome}</p>}
-                                <div ref={mapRef} style={{ height: "300px", width: "100%", borderRadius: "8px", overflow: "hidden" }}></div>
-                            </div>
-                        </IonCard>
-                    </div>
+                    <Box sx={{ px: 2, py: 3, display: 'flex', justifyContent: 'center' }}>
+                        <Card sx={{ width: '100%', maxWidth: 760, borderRadius: 3, bgcolor: '#FFFDF6', boxShadow: '0 18px 46px rgba(0,0,0,0.08)' }}>
+                            <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+                                <Typography variant="h5" component="h2" sx={{ color: '#004030', fontWeight: 700, mb: 1 }}>
+                                    {selectedPlantacao.planta}
+                                </Typography>
+                                {selectedPlantacao.nome && (
+                                    <Typography variant="body1" sx={{ color: '#4A5732', mb: 2 }}>
+                                        Nome: {selectedPlantacao.nome}
+                                    </Typography>
+                                )}
+                                <Box sx={{ borderRadius: 3, overflow: 'hidden', border: '1px solid #DCD0A8' }}>
+                                    <div ref={mapRef} style={{ height: '320px', width: '100%' }} />
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Box>
                 ) : (
-                    <>
-                        <IonList style={{ background: "#FFF9E5" }}>
-                            <IonItem>
-                                <IonInput label="Nome da Planta" labelPlacement="stacked" placeholder="Ex: Tomate, Milho..." value={plantacao.planta} onIonChange={e => setPlantacao(prev => ({ ...prev, planta: e.detail.value! }))} />
-                            </IonItem>
-                            <IonItem>
-                                <IonInput label="Nome (Opcional)" labelPlacement="stacked" placeholder="Nome personalizado da plantação" value={plantacao.nome} onIonChange={e => setPlantacao(prev => ({ ...prev, nome: e.detail.value! }))} />
-                            </IonItem>
-                        </IonList>
+                    <Box sx={{ px: 2, py: 3, display: 'flex', justifyContent: 'center' }}>
+                        <Card sx={{ width: '100%', maxWidth: 760, borderRadius: 3, bgcolor: '#FFFDF6', boxShadow: '0 18px 46px rgba(0,0,0,0.08)' }}>
+                            <CardContent sx={{ p: { xs: 2.5, sm: 3.5 }, display: 'grid', gap: 2 }}>
+                                <Typography variant="h5" component="h2" sx={{ color: '#004030', fontWeight: 700 }}>
+                                    {selectedPlantacao ? 'Editar Plantação' : 'Adicionar Plantação'}
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: '#4A5732' }}>
+                                    Informe o nome da planta e marque os pontos no mapa para definir sua área.
+                                </Typography>
+                                <TextField
+                                    label="Nome da Planta"
+                                    variant="filled"
+                                    fullWidth
+                                    value={plantacao.planta}
+                                    onChange={e => setPlantacao(prev => ({ ...prev, planta: e.target.value }))}
+                                    sx={{ '& .MuiFilledInput-root': { bgcolor: '#FFF9E5' } }}
+                                />
+                                <TextField
+                                    label="Nome (Opcional)"
+                                    variant="filled"
+                                    fullWidth
+                                    value={plantacao.nome}
+                                    onChange={e => setPlantacao(prev => ({ ...prev, nome: e.target.value }))}
+                                    sx={{ '& .MuiFilledInput-root': { bgcolor: '#FFF9E5' } }}
+                                />
 
-                        <IonCard style={{ "--background": "#FFF9E5", border: "1px solid #004030", borderRadius: "8px", margin: "0" }}>
-                            <div style={{ padding: "16px" }}>
-                                <h4 style={{ color: "#004030", marginBottom: "10px" }}>Definir Área da Plantação</h4>
-                                <p style={{ color: "#004030", fontSize: "14px", marginBottom: "15px" }}>Clique no mapa para adicionar pontos que definem a área da sua plantação. Cada ponto recebe um número sequencial único.</p>
-                                <div ref={editMapRef} style={{ height: "300px", width: "100%", borderRadius: "8px", overflow: "hidden", border: "2px solid #004030", position: "relative", backgroundColor: "#f0f0f0", zIndex: 1 }}>
-                                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", color: "#666", fontSize: "14px", zIndex: 1000 }}>Carregando mapa...</div>
-                                </div>
-                                <p style={{ color: "#004030", fontSize: "12px", marginTop: "10px", textAlign: "center" }}>
-                                    Pontos adicionados: {pins.length} | Próximo: Ponto {nextPinNumber}
-                                    {pins.length > 0 && (
-                                        <IonButton
-                                            fill="clear"
-                                            size="small"
-                                            onClick={() => {
-                                                if (!editMapInstanceRef.current) return;
-
-                                                console.log('=== CLEARING PINS AND POLYGON ONLY ===');
-
-                                                // Remove all markers from the map
-                                                markersRef.current.forEach(marker => {
-                                                    editMapInstanceRef.current!.removeLayer(marker);
-                                                });
-
-                                                // Remove polylines
-                                                polylinesRef.current.forEach(line => {
-                                                    editMapInstanceRef.current!.removeLayer(line);
-                                                });
-                                                polylinesRef.current = [];
-
-                                                // Remove polygon if it exists (though not used now)
-                                                if (polygonRef.current) {
-                                                    editMapInstanceRef.current!.removeLayer(polygonRef.current);
-                                                    polygonRef.current = null;
-                                                }
-
-                                                // Clear all state
-                                                setPins([]);
-                                                setNextPinNumber(1);
-                                                markersRef.current = [];
-
-                                                console.log('=== PINS AND POLYGON CLEARED, MAP VIEW PRESERVED ===');
-                                            }}
-                                            style={{ "--color": "#dc3545", fontSize: "12px", marginLeft: "10px" }}
-                                        >
-                                            Limpar
-                                        </IonButton>
-                                    )}
-                                </p>
-                            </div>
-                        </IonCard>
-
-                        <IonButton
-                            expand="block"
-                            onClick={selectedPlantacao?._id ? handleEditPlantacao : handleSubmit}
-                            style={{ "--background": "#004030", color: "#FFF9E5", margin: "20px" }}
-                        >
-                            {selectedPlantacao ? "Atualizar Plantação" : "Salvar Plantação"}
-                        </IonButton>
-                    </>
+                                <Card sx={{ bgcolor: '#F6F0D1', borderRadius: 2, border: '1px solid #D7C499' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                        <Typography variant="subtitle1" sx={{ color: '#004030', fontWeight: 700, mb: 1 }}>
+                                            Definir área da plantação
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ color: '#4A5732', mb: 2 }}>
+                                            Clique no mapa para adicionar pontos que delimitam a área. Cada ponto será numerado sequencialmente.
+                                        </Typography>
+                                        <Box sx={{ borderRadius: 2, overflow: 'hidden', border: '2px solid #004030', position: 'relative', bgcolor: '#f7f2e4' }}>
+                                            <div ref={editMapRef} style={{ height: '320px', width: '100%' }} />
+                                            <Box sx={{ position: 'absolute', top: 0, left: 0, p: 1, color: '#004030', fontSize: 13 }}>
+                                                Pontos adicionados: {pins.length} | Próximo: Ponto {nextPinNumber}
+                                            </Box>
+                                        </Box>
+                                        {pins.length > 0 && (
+                                            <Button
+                                                variant="outlined"
+                                                color="error"
+                                                size="small"
+                                                onClick={() => {
+                                                    if (!editMapInstanceRef.current) return;
+                                                    markersRef.current.forEach(marker => editMapInstanceRef.current!.removeLayer(marker));
+                                                    polylinesRef.current.forEach(line => editMapInstanceRef.current!.removeLayer(line));
+                                                    polylinesRef.current = [];
+                                                    if (polygonRef.current) {
+                                                        editMapInstanceRef.current!.removeLayer(polygonRef.current);
+                                                        polygonRef.current = null;
+                                                    }
+                                                    setPins([]);
+                                                    setNextPinNumber(1);
+                                                    markersRef.current = [];
+                                                }}
+                                                sx={{ mt: 2 }}
+                                            >
+                                                Limpar pontos
+                                            </Button>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                                <Button
+                                    variant="contained"
+                                    fullWidth
+                                    onClick={selectedPlantacao?._id ? handleEditPlantacao : handleSubmit}
+                                    sx={{ mt: 1, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
+                                >
+                                    {selectedPlantacao ? 'Atualizar Plantação' : 'Salvar Plantação'}
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </Box>
                 )}
             </IonContent>
         </IonPage>
