@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { IonFooter, IonToolbar, IonButton, IonIcon, IonLabel } from "@ionic/react";
 import { jwtDecode } from "jwt-decode";
-import { mapOutline, cartOutline, listOutline, bandageOutline } from "ionicons/icons";
+import { mapOutline, cartOutline, listOutline, bandageOutline, sparklesOutline } from "ionicons/icons";
 
 interface DecodedToken {
   type?: string;
@@ -30,6 +30,7 @@ const FooterNav: React.FC = () => {
       return [
         { href: "/mapa", icon: mapOutline, label: "Mapa" },
         { href: "/market", icon: cartOutline, label: "Market" },
+        { href: "/agent", icon: sparklesOutline, label: "Agent" },
         { href: "/lista", icon: listOutline, label: "Lista" },
         { href: "/lista-vet", icon: listOutline, label: "Lista Vet" },
         { href: "/veterinarios", icon: bandageOutline, label: "Veterinários" },
@@ -39,6 +40,7 @@ const FooterNav: React.FC = () => {
     if (type === "veterinario") {
       return [
         { href: "/mapa", icon: mapOutline, label: "Mapa" },
+        { href: "/agent", icon: sparklesOutline, label: "Agent" },
         { href: "/lista-vet", icon: listOutline, label: "Lista Vet" },
         { href: "/veterinarios", icon: bandageOutline, label: "Veterinários" },
       ];
@@ -47,6 +49,7 @@ const FooterNav: React.FC = () => {
     return [
       { href: "/mapa", icon: mapOutline, label: "Mapa" },
       { href: "/market", icon: cartOutline, label: "Market" },
+      { href: "/agent", icon: sparklesOutline, label: "Agent" },
       { href: "/lista", icon: listOutline, label: "Lista" },
       { href: "/veterinarios", icon: bandageOutline, label: "Veterinários" },
     ];

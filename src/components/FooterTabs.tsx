@@ -11,6 +11,7 @@ import {
   cartOutline,
   listOutline,
   bandageOutline,
+  sparklesOutline,
 } from "ionicons/icons";
 
 type FooterTab = "mapa" | "market" | "lista" | "veterinarios";
@@ -46,6 +47,13 @@ const FooterTabs: React.FC<FooterTabsProps> = ({ activeTab, isVeterinario = fals
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: 18 }} />
               <IonLabel style={{ color: "#004030", fontSize: 11 }}>Market</IonLabel>
+            </div>
+          </IonButton>
+
+          <IonButton fill="clear" routerLink="/agent" style={getButtonStyle("lista")}> 
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <IonIcon icon={sparklesOutline} style={{ color: "#004030", fontSize: 18 }} />
+              <IonLabel style={{ color: "#004030", fontSize: 11 }}>Agent</IonLabel>
             </div>
           </IonButton>
 

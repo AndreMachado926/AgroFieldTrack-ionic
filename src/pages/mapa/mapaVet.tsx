@@ -18,6 +18,7 @@ import {
     IonButtons,
 } from "@ionic/react";
 import FooterTabs from "../../components/FooterTabs";
+import HeaderNav from "../../components/HeaderNav";
 import {
     mapOutline,
     cartOutline,
@@ -256,21 +257,7 @@ const MapaVetPage: React.FC = () => {
                     background: transparent !important;
                 }
             `}</style>
-            <IonHeader>
-                <IonToolbar>
-                    <IonTitle>Mapa Veterinário</IonTitle>
-
-                    <IonButtons slot="end" style={{ display: "flex", gap: "4px" }}>
-                        <IonButton fill="clear" href="/#/settings">
-                            <IonIcon icon={settingsOutline} style={{ color: "#004030", fontSize: "24px" }} />
-                        </IonButton>
-
-                        <IonButton fill="clear" onClick={handleLogout}>
-                            <IonIcon icon={logOutOutline} style={{ color: "#004030", fontSize: "24px" }} />
-                        </IonButton>
-                    </IonButtons>
-                </IonToolbar>
-            </IonHeader>
+            <HeaderNav onLogout={handleLogout} />
 
             <IonContent fullscreen>
                 {loading && (
