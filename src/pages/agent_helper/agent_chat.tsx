@@ -367,10 +367,10 @@ const AgentChatPage: React.FC = () => {
         onClose={() => setShowAboutDialog(false)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{
-          sx: {
-            backgroundColor: "#FFF9E5",
-            color: "#004030",
+        sx={{
+          '& .MuiDialog-paper': {
+            backgroundColor: '#FFF9E5',
+            color: '#004030',
           },
         }}
       >
