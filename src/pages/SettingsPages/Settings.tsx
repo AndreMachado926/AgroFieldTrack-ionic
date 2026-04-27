@@ -15,7 +15,7 @@ import {
   IonButton,
   IonToast,
 } from '@ionic/react';
-import { personOutline, chevronForward, arrowBackOutline, hardwareChipOutline } from 'ionicons/icons';
+import { personOutline, chevronForward, arrowBackOutline, hardwareChipOutline, colorPaletteOutline } from 'ionicons/icons';
 import '../SettingsPages/Settings.css';
 
 // 🔥 Backend
@@ -75,6 +75,11 @@ const Settings: React.FC = () => {
     window.location.href = "/#/arduino";
   };
 
+  const handleGrafica = () => {
+    // Redireciona para a página de configurações gráficas
+    window.location.href = "/#/settings-graficas";
+  };
+
   if (isLoading) {
     return (
       <IonPage>
@@ -123,6 +128,11 @@ const Settings: React.FC = () => {
           <IonItem button onClick={handleArduino}>
             <IonIcon slot="start" icon={hardwareChipOutline} style={{ color: '#004030' }} />
             <IonLabel style={{ color: '#004030' }}>Arduino Logs</IonLabel>
+            <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
+          </IonItem>
+          <IonItem button onClick={handleGrafica}>
+            <IonIcon slot="start" icon={colorPaletteOutline} style={{ color: '#004030' }} />
+            <IonLabel style={{ color: '#004030' }}>Configurações Gráficas</IonLabel>
             <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
           </IonItem>
         </IonList>

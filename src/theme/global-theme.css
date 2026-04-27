@@ -1,0 +1,198 @@
+/* ============================================
+   ESTILOS GLOBAIS - MODO CLARO E ESCURO
+   ============================================ */
+
+/* === Modo Claro (padrão) === */
+:root {
+  color-scheme: light;
+  --ion-color-step-50: #ffffff;
+  --ion-background-color: #FFF9E5 !important;
+  --ion-text-color: #004030 !important;
+  --ion-item-background: #FFFFFF;
+  --ion-toolbar-background: #FFF9E5;
+  --ion-card-background: #FFFFFF;
+  --ion-tab-bar-background: #FFF9E5;
+  --ion-tab-bar-color: #666666;
+  --ion-tab-bar-color-selected: #004030;
+  --page-background: #FFF9E5;
+  --text-color: #004030;
+  --card-bg: #FFFFFF;
+  --item-bg: #FFFFFF;
+  --border-color: #DCD0A8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light;
+  }
+}
+
+/* === Modo Escuro === */
+body.dark-mode,
+body.dark-mode ion-app,
+body.dark-mode ion-content,
+body.dark-mode ion-page,
+body.dark-mode .ion-page {
+  --ion-background-color: #121212 !important;
+  --ion-text-color: #E0E0E0 !important;
+  --ion-color-step-50: #1E1E1E;
+  --ion-color-step-100: #232323;
+  --ion-color-step-150: #282828;
+  --ion-color-step-200: #2D2D2D;
+  --ion-color-step-250: #323232;
+  --ion-color-step-300: #373737;
+  --ion-color-step-350: #3C3C3C;
+  --ion-color-step-400: #414141;
+  --ion-color-step-450: #464646;
+  --ion-color-step-500: #4B4B4B;
+  --ion-color-step-550: #505050;
+  --ion-color-step-600: #555555;
+  --ion-color-step-650: #5A5A5A;
+  --ion-color-step-700: #5F5F5F;
+  --ion-color-step-750: #646464;
+  --ion-color-step-800: #696969;
+  --ion-color-step-850: #6E6E6E;
+  --ion-color-step-900: #737373;
+  --ion-color-step-950: #787878;
+  
+  --page-background: #121212;
+  --text-color: #E0E0E0;
+  --card-bg: #1E1E1E;
+  --item-bg: #1E1E1E;
+  --border-color: #444444;
+  
+  background-color: #121212 !important;
+  color: #E0E0E0 !important;
+}
+
+/* Toolbar */
+body.dark-mode ion-toolbar {
+  --background: #1E1E1E !important;
+  --color: #E0E0E0 !important;
+  background-color: #1E1E1E !important;
+  color: #E0E0E0 !important;
+}
+
+body.dark-mode ion-toolbar ion-label,
+body.dark-mode ion-toolbar ion-icon {
+  color: #E0E0E0 !important;
+}
+
+/* Items */
+body.dark-mode ion-item,
+body.dark-mode ion-item ion-label,
+body.dark-mode ion-item ion-icon {
+  --background: #1E1E1E !important;
+  --color: #E0E0E0 !important;
+  background-color: #1E1E1E !important;
+  color: #E0E0E0 !important;
+}
+
+body.dark-mode ion-list,
+body.dark-mode ion-list ion-item {
+  --background: #1E1E1E !important;
+  background-color: #1E1E1E !important;
+}
+
+/* Cards */
+body.dark-mode ion-card,
+body.dark-mode ion-card ion-card-content,
+body.dark-mode ion-card ion-card-title,
+body.dark-mode ion-card ion-card-subtitle {
+  --background: #1E1E1E !important;
+  --color: #E0E0E0 !important;
+  background-color: #1E1E1E !important;
+  color: #E0E0E0 !important;
+}
+
+/* Tab Bar */
+body.dark-mode ion-tab-bar {
+  --background: #1E1E1E !important;
+  --color: #888888 !important;
+  --color-selected: #4CAF50 !important;
+  background-color: #1E1E1E !important;
+}
+
+/* Notes */
+body.dark-mode ion-note,
+body.dark-mode ion-note p {
+  --color: #AAAAAA !important;
+  color: #AAAAAA !important;
+}
+
+/* Page Background */
+body.dark-mode .page-background {
+  background-color: #121212 !important;
+}
+
+/* Buttons */
+body.dark-mode ion-button {
+  --color: #E0E0E0 !important;
+}
+
+/* Inputs */
+body.dark-mode ion-input,
+body.dark-mode ion-input input,
+body.dark-mode ion-textarea,
+body.dark-mode ion-textarea textarea {
+  --background: #2D2D2D !important;
+  --color: #E0E0E0 !important;
+  background-color: #2D2D2D !important;
+  color: #E0E0E0 !important;
+}
+
+/* Segment */
+body.dark-mode ion-segment-button {
+  --background: #2D2D2D !important;
+  --color: #888888 !important;
+  --color-checked: #E0E0E0 !important;
+  background-color: #2D2D2D !important;
+}
+
+/* Toggle */
+body.dark-mode ion-toggle {
+  --background: #2D2D2D !important;
+  --background-checked: #4CAF50 !important;
+}
+
+/* Images */
+body.dark-mode ion-header img,
+body.dark-mode ion-toolbar img {
+  border-color: #444444 !important;
+}
+
+/* === Classes utilitárias para páginas === */
+.page-background {
+  background-color: var(--page-background);
+  color: var(--text-color);
+}
+
+.card-style {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.item-style {
+  background-color: var(--item-bg);
+  color: var(--text-color);
+}
+
+.text-primary {
+  color: var(--text-color);
+}
+
+.text-secondary {
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+/* Header fixo para modo escuro */
+body.dark-mode header {
+  background-color: #1E1E1E !important;
+}
+
+body.dark-mode header * {
+  color: #E0E0E0 !important;
+}

@@ -22,6 +22,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import { useHistory } from "react-router-dom";
+import FooterNav from "../../components/FooterNav";
+import HeaderNav from "../../components/HeaderNav";
 
 interface Message {
   id: string;
@@ -130,9 +132,19 @@ const AgentChatPage: React.FC = () => {
 
   const canSend = input.trim().length > 0 && !isLoading && aiStatus === "available";
 
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${API_BASE}/logout`);
+    } catch (err) {
+      console.warn("Erro ao deslogar", err);
+    } finally {
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh", backgroundColor: "#FFF9E5" }}>
-      {/* Header */}
       <AppBar
         position="static"
         sx={{
@@ -141,49 +153,7 @@ const AgentChatPage: React.FC = () => {
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}
       >
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => history.goBack()}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-
-          <Avatar
-            sx={{
-              bgcolor: aiStatus === "available" ? "#DCD0A8" : "#E8D5C4",
-              color: "#004030",
-              mr: 2,
-              width: 40,
-              height: 40,
-            }}
-          >
-            <SmartToyIcon />
-          </Avatar>
-
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#004030" }}>
-              Assistente de IA
-            </Typography>
-            <Typography variant="caption" sx={{ color: aiStatus === "available" ? "#4A9782" : "#B42318" }}>
-              {aiStatus === "checking" && "Verificando status..."}
-              {aiStatus === "available" && "Online • Pronto para ajudar"}
-              {aiStatus === "unavailable" && "Offline • Serviço indisponível"}
-            </Typography>
-          </Box>
-
-          <IconButton
-            color="inherit"
-            onClick={() => setShowAboutDialog(true)}
-            sx={{ ml: 1 }}
-          >
-            <Typography variant="body2" sx={{ color: "#004030", fontWeight: 600 }}>
-              ?
-            </Typography>
-          </IconButton>
-        </Toolbar>
+        <HeaderNav onLogout={handleLogout} />
         <Divider sx={{ backgroundColor: "#DCD0A8" }} />
       </AppBar>
 
@@ -411,6 +381,7 @@ const AgentChatPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <FooterNav />
     </Box>
   );
 };

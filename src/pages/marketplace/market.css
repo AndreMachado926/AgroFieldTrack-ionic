@@ -1,18 +1,19 @@
 .comunidade-page .page-background {
-  --background: #FFF9E5 !important;
+  background-color: var(--page-background) !important;
 }
 
 .comunidade-page .custom-toolbar {
-  --background: #004030 !important;
-  --color: #ffffff !important;
+  --background: var(--ion-toolbar-background) !important;
+  --color: var(--text-color) !important;
 }
 
 .comunidade-page .card-container {
-  background: #DCD0A8;
+  background: var(--card-bg);
   border-radius: 10px;
   box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
   padding: 15px;
   transition: transform 0.2s ease-in-out;
+  color: var(--text-color);
 }
 
 .comunidade-page .card-container:hover {
@@ -29,20 +30,22 @@
 .comunidade-page .card-header {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #004030;
+  color: var(--text-color);
   margin-top: 10px;
 }
 
 .comunidade-page .card-content {
   font-size: 1rem;
-  color: #3A8772;
+  color: var(--text-color);
+  opacity: 0.8;
   margin-top: 5px;
 }
 
 .comunidade-page .card-tags {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #3A8772;
+  color: var(--text-color);
+  opacity: 0.7;
   margin-top: 8px;
 }
 

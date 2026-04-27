@@ -1,16 +1,38 @@
 /* For information on how to create your own theme, please see:
 http://ionicframework.com/docs/theming/ */
 
+/* Modo Claro (padrão) */
+:root {
+  --theme-background: #FFF9E5;
+  --theme-color: #004030;
+  --theme-tabbar-bg: #DCD0A8;
+}
+
 ion-toolbar, ion-header, ion-footer, ion-tab-bar {
-  --background: #FFF9E5;
-  --color: #004030;
+  --background: var(--theme-background);
+  --color: var(--theme-color);
 }
 
 /* separadamente, se quiser tabbar mais bege */
 ion-tab-bar {
-  --background: #DCD0A8;
-  --color: #004030;
-  --color-selected: #004030;
+  --background: var(--theme-tabbar-bg);
+  --color: var(--theme-color);
+  --color-selected: var(--theme-color);
+}
+
+/* Modo Escuro */
+body.dark-mode ion-toolbar,
+body.dark-mode ion-header,
+body.dark-mode ion-footer,
+body.dark-mode ion-tab-bar {
+  --background: #1E1E1E;
+  --color: #E0E0E0;
+}
+
+body.dark-mode ion-tab-bar {
+  --background: #1E1E1E;
+  --color: #888888;
+  --color-selected: #4CAF50;
 }
 
 /* Hide Leaflet attribution link in bottom-right */

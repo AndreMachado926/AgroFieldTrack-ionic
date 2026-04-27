@@ -1,31 +1,34 @@
 .detalhes-page .page-background {
-    --background: #FFF9E5 !important;
+    background-color: var(--page-background) !important;
 }
 
 .detalhes-page .custom-toolbar {
-    --background: #004030 !important;
-    --color: #ffffff !important;
+    --background: var(--ion-toolbar-background) !important;
+    --color: var(--text-color) !important;
 }
 
 .detalhes-page .card-container {
     padding: 12px;
     margin: 12px 8px;
+    background: var(--card-bg);
+    color: var(--text-color);
 }
-
-
 
 .detalhes-page .card-header {
     font-size: 1.2rem;
     font-weight: bold;
-    color: #004030;
+    color: var(--text-color);
 }
 
 .detalhes-page .card-content {
     margin-top: 4px;
+    color: var(--text-color);
 }
 
 .detalhes-page .card-tags {
     margin-top: 6px;
+    color: var(--text-color);
+    opacity: 0.7;
 }
 
 .detalhes-page .card-button {
