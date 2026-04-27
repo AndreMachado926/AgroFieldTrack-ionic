@@ -1,15 +1,13 @@
-/* 🌿 Fundo geral */
+/* 🌿 Fundo geral - usa variáveis globais */
 .page-background {
-  --background: #FFF9E5 !important;
-  /* Fundo creme */
-  background-color: #FFF9E5 !important;
-  color: #004030;
+  background-color: var(--page-background) !important;
+  color: var(--text-color);
 }
 
 /* 🌿 Toolbar */
 .custom-toolbar {
-  --background: #004030 !important;
-  --color: #FFF9E5 !important;
+  --background: var(--ion-toolbar-background) !important;
+  --color: var(--text-color) !important;
   font-weight: bold;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -18,11 +16,11 @@
 .settings-card {
   margin: 1rem;
   border-radius: 16px;
-  background-color: #DCD0A8;
+  background-color: var(--card-bg);
   box-shadow: 0 3px 8px rgba(0, 64, 48, 0.1);
   padding: 1rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  color: #004030;
+  color: var(--text-color);
 }
 
 .settings-card:hover {
@@ -36,16 +34,14 @@ ion-list {
 }
 
 ion-item {
-  --background: #DCD0A8 !important;
-  --color: #004030 !important;
+  --background: var(--item-bg) !important;
+  --color: var(--text-color) !important;
   border-radius: 12px;
   margin: 8px 12px;
   --padding-start: 14px;
   font-weight: 500;
   box-shadow: 0 2px 6px rgba(0, 64, 48, 0.08);
 }
-
-
 
 /* 🌿 Ícones */
 ion-icon {

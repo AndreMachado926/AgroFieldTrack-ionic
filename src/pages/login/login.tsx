@@ -58,9 +58,6 @@ const Login: React.FC = () => {
                 alt="AgroFieldTrack Logo"
                 className="splash-logo"
               />
-              <h1 className="splash-title" style={{ color: "black" }}>
-                AgroFieldTrack
-              </h1>
             </div>
           </div>
 

@@ -2,6 +2,9 @@ import { Route, Switch } from 'react-router-dom';
 import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactHashRouter } from '@ionic/react-router';
 import Home from './pages/Home';
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
+import { useEffect, useState } from 'react';
 
 import Login from './pages/login/login';
 import Signup from './pages/login/signup';
@@ -22,6 +25,7 @@ import ContatosPage from './pages/lista_veterinarios/ContactsPage';
 import VeterinarioContatosPage from './pages/veterinario/contactos'; // nova página de contatos para veterinários
 import AgentPage from './pages/agent_helper/agent_chat'; // nova página de contatos para veterinários
 import ArduinoPage from './pages/arduino/arduino'; // nova página de contatos para veterinários
+import Settings_graficas from './pages/SettingsPages/grafica/settings_grafica'; // nova página de contatos para veterinários
 
 import '@ionic/react/css/core.css';
 
@@ -40,6 +44,7 @@ import '@ionic/react/css/display.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import './theme/global-theme.css';
 
 setupIonicReact();
 
@@ -50,6 +55,36 @@ const App: React.FC = () => {
 };
 
 const InnerApp: React.FC = () => {
+  const [userMode, setUserMode] = useState<'white' | 'dark'>('white');
+  const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
+
+  const getToken = () => {
+    const match = document.cookie.match(/(^| )auth=([^;]+)/);
+    return match ? match[2] : localStorage.getItem("authToken");
+  };
+
+  useEffect(() => {
+    const applyUserMode = async () => {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const decoded: any = jwtDecode(token);
+        const response = await axios.post(`${API_BASE}/settings/getusermode`, { id: decoded.user_id });
+        if (response.data.mode === 'dark') {
+          document.body.classList.add('dark-mode');
+          setUserMode('dark');
+        } else {
+          document.body.classList.remove('dark-mode');
+          setUserMode('white');
+        }
+      } catch (err) {
+        console.error("Erro ao buscar modo do usuário:", err);
+      }
+    };
+
+    applyUserMode();
+  }, []);
 
   return (
     <IonApp>
@@ -75,6 +110,7 @@ const InnerApp: React.FC = () => {
             <Route exact path="/veterinario/contatos" component={VeterinarioContatosPage} />
             <Route exact path="/agent" component={AgentPage} />
             <Route exact path="/arduino" component={ArduinoPage} />
+            <Route exact path="/settings-graficas" component={Settings_graficas} />
           </Switch>
         </IonRouterOutlet>
       </IonReactHashRouter>
