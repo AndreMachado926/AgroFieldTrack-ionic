@@ -77,6 +77,17 @@ type Plantacao = {
   updatedAt?: string | null;
 };
 
+type Pasto = {
+  _id?: string;
+  nome: string;
+  pontosx?: number[] | null;
+  pontosy?: number[] | null;
+  dono_id?: string;
+  animais_ids?: string[];
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
 // Add type for Remedio (if not already defined)
 interface Remedio {
   _id: string;
@@ -101,6 +112,7 @@ const AnimaisPage: React.FC = () => {
   const [segment, setSegment] = useState("animais");
   const [animais, setAnimais] = useState<Animal[]>([]);
   const [plantacoes, setPlantacoes] = useState<Plantacao[]>([]);
+  const [pastos, setPastos] = useState<Pasto[]>([]);
   const [chats, setChats] = useState<any[]>([]);
   const [loadingChatsState, setLoadingChatsState] = useState(false);
   const [selectedPlantacao, setSelectedPlantacao] = useState<Plantacao | null>(null);
@@ -214,6 +226,47 @@ const AnimaisPage: React.FC = () => {
       const msg = err?.response?.data?.message || err.message || "Erro ao obter plantações";
       setError(msg);
       setPlantacoes([]);
+      if (err?.response?.status === 401) window.location.href = '/login';
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPastos = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Não autenticado");
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+      let res;
+
+      try {
+        res = await axios.get(`${API_BASE}/pastos/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (firstErr: any) {
+        console.warn('Falha ao usar /pastos/:id, tentando endpoint /pastos/user/:user_id', firstErr?.message || firstErr);
+        res = await axios.get(`${API_BASE}/pastos/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
+      const payload = res.data;
+      const data = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.data)
+        ? payload.data
+        : payload.data
+        ? [payload.data]
+        : [payload];
+      setPastos(data);
+    } catch (err: any) {
+      console.error("Fetch pastos erro:", err);
+      const msg = err?.response?.data?.message || err.message || "Erro ao obter pastos";
+      setError(msg);
+      setPastos([]);
       if (err?.response?.status === 401) window.location.href = '/login';
     } finally {
       setLoading(false);
@@ -354,6 +407,10 @@ const AnimaisPage: React.FC = () => {
 
   const handlePlantacaoClick = (plant: Plantacao) => {
     history.push(`/adicionar-plantacao/${plant._id}`);
+  };
+
+  const handlePastoClick = (pasto: Pasto) => {
+    history.push(`/adicionar-pasto/${pasto._id}`);
   };
 
   const createMap = () => {
@@ -589,6 +646,8 @@ const AnimaisPage: React.FC = () => {
       fetchAnimais();
     } else if (segment === "plantacoes") {
       fetchPlantacoes();
+    } else if (segment === "pastos") {
+      fetchPastos();
     } else if (segment === "chats") {
       fetchAllChats();
     }
@@ -842,6 +901,22 @@ const AnimaisPage: React.FC = () => {
     setSegment(newValue);
   };
 
+  const refreshCurrentSegment = async (event: any) => {
+    try {
+      if (segment === 'animais') {
+        await fetchAnimais();
+      } else if (segment === 'plantacoes') {
+        await fetchPlantacoes();
+      } else if (segment === 'pastos') {
+        await fetchPastos();
+      } else if (segment === 'chats') {
+        await fetchAllChats();
+      }
+    } finally {
+      event?.detail?.complete?.();
+    }
+  };
+
   const showEmptyState = (icon: React.ReactNode, message: string) => (
     <Box sx={{ width: '100%', p: 3, textAlign: 'center', color: 'text.secondary', bgcolor: '#fffdf6', borderRadius: 3, boxShadow: '0 10px 26px rgba(0,0,0,0.08)' }}>
       <Box sx={{ mb: 1 }}>{icon}</Box>
@@ -885,10 +960,11 @@ const AnimaisPage: React.FC = () => {
           >
             <Tab value="animais" icon={<PetsIcon sx={{ color: '#004030' }} />} iconPosition="start" label="Animais" />
             <Tab value="plantacoes" icon={<ForestIcon sx={{ color: '#004030' }} />} iconPosition="start" label="Plantações" />
+            <Tab value="pastos" icon={<IonIcon icon={leafOutline} style={{ color: '#004030' }} />} iconPosition="start" label="Pastos" />
           </Tabs>
         </Box>
 
-        <IonRefresher slot="fixed" onIonRefresh={fetchAnimais}>
+        <IonRefresher slot="fixed" onIonRefresh={refreshCurrentSegment}>
           <IonRefresherContent
             pullingIcon={null}
             refreshingSpinner="bubbles"
@@ -899,6 +975,7 @@ const AnimaisPage: React.FC = () => {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 1, px: 2, pb: 14 }}>
           {segment === 'animais' && animais.length === 0 && showEmptyState(<PetsIcon sx={{ fontSize: 56, color: '#004030' }} />, 'Nenhum animal encontrado.')}
           {segment === 'plantacoes' && plantacoes.length === 0 && showEmptyState(<ForestIcon sx={{ fontSize: 56, color: '#004030' }} />, 'Nenhuma plantação encontrada.')}
+          {segment === 'pastos' && pastos.length === 0 && showEmptyState(<IonIcon icon={leafOutline} style={{ fontSize: 56, color: '#004030' }} />, 'Nenhum pasto encontrado.')}
 
           {segment === 'animais' ? animais.map((item) => (
             <Box key={item._id}>
@@ -934,7 +1011,7 @@ const AnimaisPage: React.FC = () => {
                 </CardActions>
               </MuiCard>
             </Box>
-          )) : plantacoes.map((item) => (
+          )) : segment === 'plantacoes' ? plantacoes.map((item) => (
             <Box key={item._id}>
               <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#FFF6EA' }}>
                 <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />
@@ -957,6 +1034,33 @@ const AnimaisPage: React.FC = () => {
                     onClick={() => handlePlantacaoClick(item)}
                   >
                     Ver plantação
+                  </MuiButton>
+                </CardActions>
+              </MuiCard>
+            </Box>
+          )) : pastos.map((item) => (
+            <Box key={item._id}>
+              <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#E8F5E9' }}>
+                <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />
+                <CardContent sx={{ position: 'relative', zIndex: 1, flex: 1, pb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ color: '#004030', fontWeight: 700 }}>{item.nome}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{`${item.animais_ids?.length ?? 0} animais`}</Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    {item.createdAt ? `Criado em: ${new Date(item.createdAt || '').toLocaleDateString()}` : 'Sem data registrada'}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
+                  <MuiButton
+                    fullWidth
+                    variant="contained"
+                    sx={{ backgroundColor: '#004030', color: '#FFF9E5', '&:hover': { backgroundColor: '#3A8772' } }}
+                    onClick={() => handlePastoClick(item)}
+                  >
+                    Ver pasto
                   </MuiButton>
                 </CardActions>
               </MuiCard>
@@ -1341,7 +1445,12 @@ const AnimaisPage: React.FC = () => {
       {/* Floating Action Button */}
       <Fab
         aria-label="add"
-        onClick={() => history.push(segment === 'animais' ? '/adicionar-animal' : '/adicionar-plantacao')}
+        onClick={() => {
+          if (segment === 'animais') return history.push('/adicionar-animal');
+          if (segment === 'plantacoes') return history.push('/adicionar-plantacao');
+          if (segment === 'pastos') return history.push('/adicionar-pasto');
+          return history.push('/adicionar-animal');
+        }}
         sx={{ position: 'fixed', bottom: 88, right: 20, zIndex: 1100, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
       >
         <AddIcon />
