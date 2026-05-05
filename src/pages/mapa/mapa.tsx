@@ -50,6 +50,14 @@ interface Animal {
     dono_id?: string | { nome_completo?: string; username?: string };
 }
 
+interface Pasto {
+    _id?: string;
+    nome: string;
+    pontosx?: number[];
+    pontosy?: number[];
+    animais_ids?: string[];
+}
+
 interface DecodedToken {
     user_id: string;
     username: string;
@@ -67,6 +75,7 @@ const MapaAnimaisPage: React.FC = () => {
     const otherUsersMarkersRef = useRef<Record<string, L.CircleMarker | L.Marker>>({});
 
     const [animais, setAnimais] = useState<Animal[]>([]);
+    const [pastos, setPastos] = useState<Pasto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -76,7 +85,7 @@ const MapaAnimaisPage: React.FC = () => {
         return match ? match[2] : localStorage.getItem("authToken");
     };
 
-    const createMap = (animals: Animal[]) => {
+    const createMap = (animals: Animal[], pastosData: Pasto[]) => {
         if (!mapRef.current) return;
         if (mapInstanceRef.current) mapInstanceRef.current.remove();
 
@@ -103,6 +112,25 @@ const MapaAnimaisPage: React.FC = () => {
                 const marker = L.marker([animal.localizacaoX, animal.localizacaoY], { icon: pinIcon }).addTo(map);
                 marker.bindPopup(popupText);
                 bounds.push([animal.localizacaoX, animal.localizacaoY]);
+            }
+        });
+
+        // Adicionar pastos como polígonos
+        pastosData.forEach(pasto => {
+            if (pasto.pontosx && pasto.pontosy && pasto.pontosx.length === pasto.pontosy.length && pasto.pontosx.length >= 3) {
+                const coords: L.LatLngExpression[] = [];
+                for (let i = 0; i < pasto.pontosx.length; i++) {
+                    coords.push([pasto.pontosx[i], pasto.pontosy[i]]);
+                    bounds.push([pasto.pontosx[i], pasto.pontosy[i]]);
+                }
+                const polygon = L.polygon(coords, {
+                    color: '#4A9782',
+                    weight: 2,
+                    fillColor: '#4A9782',
+                    fillOpacity: 0.2,
+                }).addTo(map);
+                const animalCount = pasto.animais_ids?.length || 0;
+                polygon.bindPopup(`<strong>${pasto.nome}</strong><br/>${animalCount} animal(is)`);
             }
         });
 
@@ -233,14 +261,30 @@ const MapaAnimaisPage: React.FC = () => {
                     ? `${API_BASE}/veterinarios/${userId}/shared-animals`
                     : `${API_BASE}/animais/${userId}`;
 
-                const res = await axios.get(endpoint, {
+                const resAnimais = await axios.get(endpoint, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const animalsData: Animal[] = Array.isArray(res.data)
-                    ? res.data
-                    : res.data?.data || [];
+                const animalsData: Animal[] = Array.isArray(resAnimais.data)
+                    ? resAnimais.data
+                    : resAnimais.data?.data || [];
+
+                // Buscar pastos
+                let resPastos;
+                try {
+                    resPastos = await axios.get(`${API_BASE}/pastos/user/${userId}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                } catch (pastosErr) {
+                    console.warn('Erro ao buscar pastos:', pastosErr);
+                    resPastos = { data: [] };
+                }
+                const pastosData: Pasto[] = Array.isArray(resPastos.data)
+                    ? resPastos.data
+                    : resPastos.data?.data || [];
+
                 setAnimais(animalsData);
-                createMap(animalsData);
+                setPastos(pastosData);
+                createMap(animalsData, pastosData);
             } catch (err) {
                 console.error(err);
                 setError("Sessão expirada ou inválida");

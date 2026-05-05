@@ -20,6 +20,7 @@ import Conta from './pages/SettingsPages/conta';
 import Mapa from './pages/mapa/mapa';
 import AdicionarAnimal from './pages/lista/adicionar-animal';
 import AdicionarPlantacao from './pages/lista/adicionar-plantacao';
+import AdicionarPasto from './pages/lista/adicionar-pasto';
 import ChatPage from './pages/lista_veterinarios/ChatPage';
 import ContatosPage from './pages/lista_veterinarios/ContactsPage';
 import VeterinarioContatosPage from './pages/veterinario/contactos'; // nova página de contatos para veterinários
@@ -105,6 +106,7 @@ const InnerApp: React.FC = () => {
             <Route exact path="/mapa" component={Mapa} />
             <Route path="/adicionar-animal/:id?" component={AdicionarAnimal} />
             <Route path="/adicionar-plantacao/:id?" component={AdicionarPlantacao} />
+            <Route path="/adicionar-pasto/:id?" component={AdicionarPasto} />
             <Route exact path="/chat" component={ChatPage} />
             <Route exact path="/contatos" component={ContatosPage} />
             <Route exact path="/veterinario/contatos" component={VeterinarioContatosPage} />

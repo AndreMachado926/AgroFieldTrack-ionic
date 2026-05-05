@@ -1,29 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { IonContent, IonPage, IonTitle, IonToolbar, IonHeader, IonButtons, IonButton, IonIcon } from '@ionic/react';
+import React, { useEffect, useRef, useState } from 'react';
+import { IonContent, IonPage, IonTitle, IonToolbar, IonHeader, IonButtons, IonButton, IonIcon, IonText } from '@ionic/react';
 import { io, Socket } from 'socket.io-client';
 import { arrowBackOutline } from 'ionicons/icons';
 const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
 const ArduinoPage: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [connected, setConnected] = useState(false);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Connect to the backend Socket.IO server
-    const newSocket = io(API_BASE); // Adjust URL if needed
-    setSocket(newSocket);
+    const socket = io(API_BASE, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      timeout: 10000,
+    });
 
-    // Listen for sensorData event
-    newSocket.on('sensorData', (data: any) => {
+    socket.on('connect', () => {
+      setConnected(true);
+    });
+
+    socket.on('disconnect', () => {
+      setConnected(false);
+    });
+
+    socket.on('connect_error', () => {
+      setConnected(false);
+    });
+
+    socket.on('sensorData', (data: any) => {
       const timestamp = new Date().toLocaleString();
       const logEntry = `${timestamp}: ${JSON.stringify(data)}`;
       setLogs(prevLogs => [...prevLogs, logEntry]);
     });
 
     return () => {
-      newSocket.disconnect();
+      socket.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
   return (
     <IonPage style={{ backgroundColor: 'black', color: 'white' }}>
@@ -38,7 +56,10 @@ const ArduinoPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent style={{ backgroundColor: 'black', color: 'white' }}>
-        <div style={{ padding: '16px', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+        <div style={{ padding: '16px', fontFamily: 'monospace', whiteSpace: 'pre-wrap', minHeight: '100%', overflowY: 'auto' }}>
+          <IonText style={{ color: connected ? '#2ecc71' : '#e74c3c', marginBottom: '12px', display: 'block' }}>
+            {connected ? 'Conectado. Acompanhando novos resultados...' : 'Desconectado. Tentando reconectar...'}
+          </IonText>
           {logs.length === 0 ? (
             <p>Waiting for sensor data...</p>
           ) : (
@@ -48,6 +69,7 @@ const ArduinoPage: React.FC = () => {
               </div>
             ))
           )}
+          <div ref={logsEndRef} />
         </div>
       </IonContent>
     </IonPage>
