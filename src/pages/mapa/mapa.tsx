@@ -80,6 +80,27 @@ const MapaAnimaisPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
+    const parseCoord = (value: any) => {
+        if (value === undefined || value === null) return NaN;
+
+        if (typeof value === 'string') {
+            const normalized = value.trim().replace(',', '.');
+            return normalized === '' ? NaN : Number(normalized);
+        }
+
+        if (typeof value === 'object') {
+            if (value.$numberDecimal !== undefined) {
+                return Number(String(value.$numberDecimal).replace(',', '.'));
+            }
+            if (typeof value.valueOf === 'function') {
+                return Number(value.valueOf());
+            }
+            return NaN;
+        }
+
+        return Number(value);
+    };
+
     const getToken = () => {
         const match = document.cookie.match(/(^| )auth=([^;]+)/);
         return match ? match[2] : localStorage.getItem("authToken");
@@ -104,15 +125,21 @@ const MapaAnimaisPage: React.FC = () => {
         const bounds: L.LatLngExpression[] = [];
 
         animals.forEach(animal => {
-            if (animal.localizacaoX && animal.localizacaoY) {
-                const ownerName = typeof animal.dono_id === 'object'
-                    ? (animal.dono_id.nome_completo || animal.dono_id.username || '')
-                    : '';
-                const popupText = `<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}${ownerName ? `<br/>Dono: ${ownerName}` : ''}`;
-                const marker = L.marker([animal.localizacaoX, animal.localizacaoY], { icon: pinIcon }).addTo(map);
-                marker.bindPopup(popupText);
-                bounds.push([animal.localizacaoX, animal.localizacaoY]);
+            const lat = parseCoord(animal.localizacaoX);
+            const lng = parseCoord(animal.localizacaoY);
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                console.debug('Mapa ignorando animal com coordenadas inválidas:', animal._id, animal.nome, animal.localizacaoX, animal.localizacaoY, lat, lng);
+                return;
             }
+
+            const ownerName = typeof animal.dono_id === 'object'
+                ? (animal.dono_id.nome_completo || animal.dono_id.username || '')
+                : '';
+            const popupText = `<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}${ownerName ? `<br/>Dono: ${ownerName}` : ''}`;
+            const marker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
+            marker.bindPopup(popupText);
+            bounds.push([lat, lng]);
         });
 
         // Adicionar pastos como polígonos
