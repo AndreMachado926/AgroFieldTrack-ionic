@@ -214,7 +214,22 @@ const AdicionarPlantacao: React.FC = () => {
                     const markerNumber = index + 1;
                     const marker = L.marker(coord).addTo(map);
                     markersRef.current.push(marker);
-                    setPins(prev => [...prev, { id: `existing_${index}`, marker, number: markerNumber, latlng: coord }]);
+                    const pinId = `existing_${index}`;
+                    setPins(prev => [...prev, { id: pinId, marker, number: markerNumber, latlng: coord }]);
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.innerHTML = '🗑️';
+                    deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
+                    deleteButton.onclick = () => {
+                        if (editMapInstanceRef.current) {
+                            editMapInstanceRef.current.removeLayer(marker);
+                        }
+                        markersRef.current = markersRef.current.filter(m => m !== marker);
+                        setPins(prev => prev.filter(p => p.id !== pinId));
+                        marker.closePopup();
+                    };
+                    marker.bindPopup(deleteButton);
+                    marker.on('click', () => marker.openPopup());
                 });
 
                 map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] });
@@ -237,8 +252,9 @@ const AdicionarPlantacao: React.FC = () => {
         const marker = L.marker(latlng).addTo(editMapInstanceRef.current);
         markersRef.current.push(marker);
 
+        const pinId = crypto.randomUUID();
         const newPin = {
-            id: crypto.randomUUID(),
+            id: pinId,
             marker,
             number: pins.length + 1,
             latlng
@@ -246,6 +262,19 @@ const AdicionarPlantacao: React.FC = () => {
 
         setPins(prev => [...prev, newPin]);
 
+        const deleteButton = document.createElement('button');
+        deleteButton.innerHTML = '🗑️';
+        deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
+        deleteButton.onclick = () => {
+            if (editMapInstanceRef.current) {
+                editMapInstanceRef.current.removeLayer(marker);
+            }
+            markersRef.current = markersRef.current.filter(m => m !== marker);
+            setPins(prev => prev.filter(p => p.id !== pinId));
+            marker.closePopup();
+        };
+        marker.bindPopup(deleteButton);
+        marker.on('click', () => marker.openPopup());
     };
 
     const updatePolygon = (currentPins: typeof pins) => {
