@@ -51,12 +51,12 @@ const AgentChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [showAboutDialog, setShowAboutDialog] = useState(false);
 
-  // Verificar status do Ollama ao carregar
+  // Verificar status da IA (OpenAI ou Ollama)
   useEffect(() => {
     const checkAiStatus = async () => {
       try {
         const response = await axios.get(`${API_BASE}/ai/status`);
-        setAiStatus(response.data.status?.ollamaAvailable ? "available" : "unavailable");
+        setAiStatus(response.data.status?.serviceRunning ? "available" : "unavailable");
       } catch (err) {
         console.error("[Agent] Erro ao verificar status da IA:", err);
         setAiStatus("unavailable");
@@ -157,14 +157,7 @@ const AgentChatPage: React.FC = () => {
         <Divider sx={{ backgroundColor: "#DCD0A8" }} />
       </AppBar>
 
-      {/* Status Alert */}
-      {aiStatus === "unavailable" && (
-        <Alert severity="warning" sx={{ m: 2, mb: 1 }}>
-          <Typography variant="body2">
-            <strong>Serviço de IA indisponível.</strong> Certifique-se de que o Ollama está em execução localmente. Execute: <code>ollama serve</code>
-          </Typography>
-        </Alert>
-      )}
+      
 
       {/* Messages Container */}
       <Box
@@ -276,7 +269,12 @@ const AgentChatPage: React.FC = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={isLoading || aiStatus !== "available"}
+          disabled={isLoading}
+          helperText={
+            aiStatus !== "available"
+              ? "A IA está indisponível no momento; você pode digitar, mas o envio será bloqueado até ela ficar disponível."
+              : ""
+          }
           variant="outlined"
           size="small"
           sx={{

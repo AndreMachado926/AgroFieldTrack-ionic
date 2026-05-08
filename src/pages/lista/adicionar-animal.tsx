@@ -10,7 +10,7 @@ import {
   IonContent,
   IonTitle
 } from "@ionic/react";
-import { Box, Card, CardContent, TextField, Button, Typography } from "@mui/material";
+import { Box, Card, CardContent, TextField, Typography } from "@mui/material";
 import { arrowBackOutline } from "ionicons/icons";
 import { useHistory, useLocation, useParams } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
@@ -198,15 +198,6 @@ const AdicionarAnimal: React.FC = () => {
                   sx={{ '& .MuiFilledInput-root': { bgcolor: '#FFF9E5' } }}
                 />
               </Box>
-
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={handleSubmit}
-                sx={{ mt: 3, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
-              >
-                {id ? 'Atualizar Animal' : 'Salvar Animal'}
-              </Button>
             </CardContent>
           </Card>
         </Box>
