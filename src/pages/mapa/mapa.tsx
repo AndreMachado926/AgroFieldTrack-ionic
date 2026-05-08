@@ -101,6 +101,39 @@ const MapaAnimaisPage: React.FC = () => {
         return Number(value);
     };
 
+    // Calcular convex hull dos pontos para desenhar polígono correto
+    const convexHull = (points: L.LatLng[]) => {
+        if (points.length <= 2) return points;
+        
+        // Ordenar pontos por longitude e depois por latitude
+        const sorted = points.slice().sort((a, b) => a.lng - b.lng || a.lat - b.lat);
+        
+        const cross = (o: L.LatLng, a: L.LatLng, b: L.LatLng) => 
+            (a.lng - o.lng) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lng - o.lng);
+        
+        const lower: L.LatLng[] = [];
+        for (let i = 0; i < sorted.length; i++) {
+            while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], sorted[i]) <= 0) {
+                lower.pop();
+            }
+            lower.push(sorted[i]);
+        }
+        
+        const upper: L.LatLng[] = [];
+        for (let i = sorted.length - 1; i >= 0; i--) {
+            while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], sorted[i]) <= 0) {
+                upper.pop();
+            }
+            upper.push(sorted[i]);
+        }
+        
+        // Remove o último ponto de cada metade porque é duplicado
+        lower.pop();
+        upper.pop();
+        
+        return lower.concat(upper);
+    };
+
     const getToken = () => {
         const match = document.cookie.match(/(^| )auth=([^;]+)/);
         return match ? match[2] : localStorage.getItem("authToken");
@@ -145,12 +178,17 @@ const MapaAnimaisPage: React.FC = () => {
         // Adicionar pastos como polígonos
         pastosData.forEach(pasto => {
             if (pasto.pontosx && pasto.pontosy && pasto.pontosx.length === pasto.pontosy.length && pasto.pontosx.length >= 3) {
-                const coords: L.LatLngExpression[] = [];
+                // Converter pontos para L.LatLng
+                const coords: L.LatLng[] = [];
                 for (let i = 0; i < pasto.pontosx.length; i++) {
-                    coords.push([pasto.pontosx[i], pasto.pontosy[i]]);
+                    coords.push(L.latLng(pasto.pontosx[i], pasto.pontosy[i]));
                     bounds.push([pasto.pontosx[i], pasto.pontosy[i]]);
                 }
-                const polygon = L.polygon(coords, {
+                
+                // Calcular convex hull para desenhar polígono correto
+                const hullCoords = convexHull(coords);
+                
+                const polygon = L.polygon(hullCoords, {
                     color: '#4A9782',
                     weight: 2,
                     fillColor: '#4A9782',
@@ -374,7 +412,7 @@ const MapaAnimaisPage: React.FC = () => {
                     </Box>
                 )}
 
-                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, px: 2, pt: 2, pb: 14, display: 'flex' }}>
+                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, px: 2, pt: 10, pb: 14, display: 'flex' }}>
                     <Box sx={{ flex: 1, borderRadius: 3, overflow: 'hidden', boxShadow: '0 18px 34px rgba(0,0,0,0.08)', bgcolor: '#fff', position: 'relative' }}>
                         <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
                     </Box>

@@ -210,6 +210,14 @@ const AdicionarPasto: React.FC = () => {
     useEffect(() => {
         if (pins.length >= 3) {
             updatePolygon(pins);
+        } else {
+            // Se menos de 3 pontos, remover polígono e linhas
+            if (editMapInstanceRef.current && polygonRef.current) {
+                editMapInstanceRef.current.removeLayer(polygonRef.current);
+                polygonRef.current = null;
+            }
+            polylinesRef.current.forEach(line => editMapInstanceRef.current?.removeLayer(line));
+            polylinesRef.current = [];
         }
     }, [pins]);
 
@@ -241,15 +249,35 @@ const AdicionarPasto: React.FC = () => {
             for (let i = 0; i < Math.min(px.length, py.length); i++) {
                 const lat = Number(px[i]);
                 const lng = Number(py[i]);
-                if (!isNaN(lat) && !isNaN(lng)) coords.push(L.latLng(lat, lng));
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    const coord = L.latLng(lat, lng);
+                    coords.push(coord);
+                    
+                    const marker = L.marker(coord).addTo(map);
+                    markersRef.current.push(marker);
+                    
+                    const pinId = `existing_${i}`;
+                    const newPin = { id: pinId, marker, number: i + 1, latlng: coord };
+                    setPins(prev => [...prev, newPin]);
+                    
+                    // Adicionar popup com botão de delete ao marker
+                    const deleteButton = document.createElement('button');
+                    deleteButton.innerHTML = '🗑️';
+                    deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
+                    deleteButton.onclick = () => {
+                        if (editMapInstanceRef.current) {
+                            editMapInstanceRef.current.removeLayer(marker);
+                        }
+                        markersRef.current = markersRef.current.filter(m => m !== marker);
+                        setPins(prev => prev.filter(p => p.id !== pinId));
+                        marker.closePopup();
+                    };
+                    
+                    marker.bindPopup(deleteButton);
+                }
             }
 
             if (coords.length > 0) {
-                coords.forEach((coord, index) => {
-                    const marker = L.marker(coord).addTo(map);
-                    markersRef.current.push(marker);
-                    setPins(prev => [...prev, { id: `existing_${index}`, marker, number: index + 1, latlng: coord }]);
-                });
                 map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] });
             }
         }
@@ -268,14 +296,31 @@ const AdicionarPasto: React.FC = () => {
         const marker = L.marker(latlng).addTo(editMapInstanceRef.current);
         markersRef.current.push(marker);
 
+        const pinId = crypto.randomUUID();
+        
         const newPin = {
-            id: crypto.randomUUID(),
+            id: pinId,
             marker,
             number: pins.length + 1,
             latlng
         };
 
         setPins(prev => [...prev, newPin]);
+        
+        // Adicionar popup com botão de delete ao marker
+        const deleteButton = document.createElement('button');
+        deleteButton.innerHTML = '🗑️';
+        deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
+        deleteButton.onclick = () => {
+            if (editMapInstanceRef.current) {
+                editMapInstanceRef.current.removeLayer(marker);
+            }
+            markersRef.current = markersRef.current.filter(m => m !== marker);
+            setPins(prev => prev.filter(p => p.id !== pinId));
+            marker.closePopup();
+        };
+        
+        marker.bindPopup(deleteButton);
     };
 
     const updatePolygon = (currentPins: typeof pins) => {

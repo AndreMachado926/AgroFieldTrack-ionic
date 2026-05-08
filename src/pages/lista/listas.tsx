@@ -15,10 +15,12 @@ import {
   IonTitle
 } from "@ionic/react";
 import { Box, Card as MuiCard, CardContent, CardActions, Typography, Button as MuiButton, IconButton as MuiIconButton, Tabs, Tab, TextField, Fab } from "@mui/material";
-import AddIcon from '@mui/icons-material/Add';
+
 import ShareIcon from '@mui/icons-material/Share';
+import DeleteIcon from '@mui/icons-material/Delete';
 import PetsIcon from '@mui/icons-material/Pets';
 import ForestIcon from '@mui/icons-material/Forest';
+import AddIcon from '@mui/icons-material/Add';
 import FooterNav from "../../components/FooterNav";
 import HeaderNav from "../../components/HeaderNav";
 import {
@@ -202,7 +204,7 @@ const AnimaisPage: React.FC = () => {
       let res;
 
       try {
-        res = await axios.get(`${API_BASE}/plantacoes/${userId}`, {
+        res = await axios.get(`${API_BASE}/plantacoes/user/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (firstErr: any) {
@@ -411,6 +413,48 @@ const AnimaisPage: React.FC = () => {
 
   const handlePastoClick = (pasto: Pasto) => {
     history.push(`/adicionar-pasto/${pasto._id}`);
+  };
+
+  const handleDeletePlantacao = async (plant: Plantacao) => {
+    if (!plant._id) return;
+    if (!window.confirm('Deseja realmente eliminar esta plantação?')) return;
+
+    try {
+      const token = getToken();
+      if (!token) throw new Error('Não autenticado');
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+
+      await axios.delete(`${API_BASE}/plantacoes/delete/${plant._id}?user_id=${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setPlantacoes(prev => prev.filter(p => p._id !== plant._id));
+    } catch (err: any) {
+      console.error('Erro ao excluir plantação:', err);
+      alert(err?.response?.data?.message || err.message || 'Erro ao excluir plantação');
+    }
+  };
+
+  const handleDeletePasto = async (pasto: Pasto) => {
+    if (!pasto._id) return;
+    if (!window.confirm('Deseja realmente eliminar este pasto?')) return;
+
+    try {
+      const token = getToken();
+      if (!token) throw new Error('Não autenticado');
+      const decoded: DecodedToken = jwtDecode(token);
+      const userId = decoded.user_id;
+
+      await axios.delete(`${API_BASE}/pastos/delete/${pasto._id}?user_id=${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setPastos(prev => prev.filter(p => p._id !== pasto._id));
+    } catch (err: any) {
+      console.error('Erro ao excluir pasto:', err);
+      alert(err?.response?.data?.message || err.message || 'Erro ao excluir pasto');
+    }
   };
 
   const createMap = () => {
@@ -1021,6 +1065,13 @@ const AnimaisPage: React.FC = () => {
                       <Typography variant="h6" sx={{ color: '#004030', fontWeight: 700 }}>{item.planta}</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{`Planta: ${item.planta}`}</Typography>
                     </Box>
+                    <MuiIconButton
+                      size="small"
+                      sx={{ bgcolor: '#FFF9E5', color: '#B42318', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                      onClick={(e) => { e.stopPropagation(); handleDeletePlantacao(item); }}
+                    >
+                      <DeleteIcon fontSize="small" sx={{ color: '#B42318' }} />
+                    </MuiIconButton>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
                     {item.createdAt ? `Criado em: ${new Date(item.createdAt || '').toLocaleDateString()}` : 'Sem data registrada'}
@@ -1048,6 +1099,13 @@ const AnimaisPage: React.FC = () => {
                       <Typography variant="h6" sx={{ color: '#004030', fontWeight: 700 }}>{item.nome}</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{`${item.animais_ids?.length ?? 0} animais`}</Typography>
                     </Box>
+                    <MuiIconButton
+                      size="small"
+                      sx={{ bgcolor: '#FFF9E5', color: '#B42318', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                      onClick={(e) => { e.stopPropagation(); handleDeletePasto(item); }}
+                    >
+                      <DeleteIcon fontSize="small" sx={{ color: '#B42318' }} />
+                    </MuiIconButton>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
                     {item.createdAt ? `Criado em: ${new Date(item.createdAt || '').toLocaleDateString()}` : 'Sem data registrada'}
@@ -1442,19 +1500,19 @@ const AnimaisPage: React.FC = () => {
         </IonContent>
       </IonModal>
 
-      {/* Floating Action Button */}
-      <Fab
-        aria-label="add"
-        onClick={() => {
-          if (segment === 'animais') return history.push('/adicionar-animal');
-          if (segment === 'plantacoes') return history.push('/adicionar-plantacao');
-          if (segment === 'pastos') return history.push('/adicionar-pasto');
-          return history.push('/adicionar-animal');
-        }}
-        sx={{ position: 'fixed', bottom: 88, right: 20, zIndex: 1100, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
-      >
-        <AddIcon />
-      </Fab>
+      {/* Floating Action Button - only for plantações and pastos */}
+      {(segment === 'plantacoes' || segment === 'pastos') && (
+        <Fab
+          aria-label="add"
+          onClick={() => {
+            if (segment === 'plantacoes') return history.push('/adicionar-plantacao');
+            if (segment === 'pastos') return history.push('/adicionar-pasto');
+          }}
+          sx={{ position: 'fixed', bottom: 88, right: 20, zIndex: 1100, bgcolor: '#004030', color: '#FFF9E5', '&:hover': { bgcolor: '#3A8772' } }}
+        >
+          <AddIcon />
+        </Fab>
+      )}
 
       {/* MENU INFERIOR - UMA SÓ LINHA */}
       <FooterNav />
