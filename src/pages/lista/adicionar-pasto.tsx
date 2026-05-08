@@ -249,18 +249,16 @@ const AdicionarPasto: React.FC = () => {
             for (let i = 0; i < Math.min(px.length, py.length); i++) {
                 const lat = Number(px[i]);
                 const lng = Number(py[i]);
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    const coord = L.latLng(lat, lng);
-                    coords.push(coord);
-                    
+                if (!isNaN(lat) && !isNaN(lng)) coords.push(L.latLng(lat, lng));
+            }
+
+            if (coords.length > 0) {
+                coords.forEach((coord, index) => {
                     const marker = L.marker(coord).addTo(map);
                     markersRef.current.push(marker);
+                    const pinId = `existing_${index}`;
+                    setPins(prev => [...prev, { id: pinId, marker, number: index + 1, latlng: coord }]);
                     
-                    const pinId = `existing_${i}`;
-                    const newPin = { id: pinId, marker, number: i + 1, latlng: coord };
-                    setPins(prev => [...prev, newPin]);
-                    
-                    // Adicionar popup com botão de delete ao marker
                     const deleteButton = document.createElement('button');
                     deleteButton.innerHTML = '🗑️';
                     deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
@@ -272,12 +270,9 @@ const AdicionarPasto: React.FC = () => {
                         setPins(prev => prev.filter(p => p.id !== pinId));
                         marker.closePopup();
                     };
-                    
                     marker.bindPopup(deleteButton);
-                }
-            }
-
-            if (coords.length > 0) {
+                    marker.on('click', () => marker.openPopup());
+                });
                 map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] });
             }
         }
@@ -297,7 +292,6 @@ const AdicionarPasto: React.FC = () => {
         markersRef.current.push(marker);
 
         const pinId = crypto.randomUUID();
-        
         const newPin = {
             id: pinId,
             marker,
@@ -307,7 +301,6 @@ const AdicionarPasto: React.FC = () => {
 
         setPins(prev => [...prev, newPin]);
         
-        // Adicionar popup com botão de delete ao marker
         const deleteButton = document.createElement('button');
         deleteButton.innerHTML = '🗑️';
         deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
@@ -319,8 +312,8 @@ const AdicionarPasto: React.FC = () => {
             setPins(prev => prev.filter(p => p.id !== pinId));
             marker.closePopup();
         };
-        
         marker.bindPopup(deleteButton);
+        marker.on('click', () => marker.openPopup());
     };
 
     const updatePolygon = (currentPins: typeof pins) => {
