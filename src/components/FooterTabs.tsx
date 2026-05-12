@@ -43,13 +43,6 @@ const FooterTabs: React.FC<FooterTabsProps> = ({ activeTab, isVeterinario = fals
             </div>
           </IonButton>
 
-          <IonButton fill="clear" routerLink="/market" style={getButtonStyle("market")}> 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <IonIcon icon={cartOutline} style={{ color: "#004030", fontSize: 18 }} />
-              <IonLabel style={{ color: "#004030", fontSize: 11 }}>Market</IonLabel>
-            </div>
-          </IonButton>
-
           <IonButton fill="clear" routerLink="/agent" style={getButtonStyle("lista")}> 
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <IonIcon icon={sparklesOutline} style={{ color: "#004030", fontSize: 18 }} />

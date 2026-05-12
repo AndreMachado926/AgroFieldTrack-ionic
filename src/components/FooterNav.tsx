@@ -29,7 +29,6 @@ const FooterNav: React.FC = () => {
     if (type === "admin") {
       return [
         { href: "/mapa", icon: mapOutline, label: "Mapa" },
-        { href: "/market", icon: cartOutline, label: "Market" },
         { href: "/agent", icon: sparklesOutline, label: "Agent" },
         { href: "/lista", icon: listOutline, label: "Lista" },
         { href: "/lista-vet", icon: listOutline, label: "Lista Vet" },
@@ -48,7 +47,6 @@ const FooterNav: React.FC = () => {
 
     return [
       { href: "/mapa", icon: mapOutline, label: "Mapa" },
-      { href: "/market", icon: cartOutline, label: "Market" },
       { href: "/agent", icon: sparklesOutline, label: "Agent" },
       { href: "/lista", icon: listOutline, label: "Lista" },
       { href: "/veterinarios", icon: bandageOutline, label: "Veterinários" },
