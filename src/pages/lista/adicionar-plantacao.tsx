@@ -119,6 +119,30 @@ const AdicionarPlantacao: React.FC = () => {
     const polylinesRef = useRef<L.Polyline[]>([]);
     const isUpdating = useRef(false);
 
+    const removePin = (pinId: string, marker: L.Marker) => {
+        if (!editMapInstanceRef.current) return;
+        editMapInstanceRef.current.removeLayer(marker);
+        markersRef.current = markersRef.current.filter(m => m !== marker);
+
+        setPins(prev => {
+            const nextPins = prev.filter(p => p.id !== pinId);
+            setNextPinNumber(nextPins.length > 0 ? Math.max(...nextPins.map(p => p.number)) + 1 : 1);
+            return nextPins;
+        });
+
+        marker.closePopup();
+    };
+
+    const bindDeletePopup = (marker: L.Marker, pinId: string) => {
+        const deleteButton = document.createElement("button");
+        deleteButton.innerHTML = "🗑️";
+        deleteButton.style.cssText =
+            "background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;";
+        deleteButton.onclick = () => removePin(pinId, marker);
+        marker.bindPopup(deleteButton);
+        marker.on("click", () => marker.openPopup());
+    };
+
     // Carregar plantação selecionada
     useEffect(() => {
         if (id) {
@@ -175,6 +199,13 @@ const AdicionarPlantacao: React.FC = () => {
     useEffect(() => {
         if (pins.length >= 3) {
             updatePolygon(pins);
+        } else {
+            if (editMapInstanceRef.current && polygonRef.current) {
+                editMapInstanceRef.current.removeLayer(polygonRef.current);
+                polygonRef.current = null;
+            }
+            polylinesRef.current.forEach(line => editMapInstanceRef.current?.removeLayer(line));
+            polylinesRef.current = [];
         }
     }, [pins]);
 
@@ -216,20 +247,7 @@ const AdicionarPlantacao: React.FC = () => {
                     markersRef.current.push(marker);
                     const pinId = `existing_${index}`;
                     setPins(prev => [...prev, { id: pinId, marker, number: markerNumber, latlng: coord }]);
-                    
-                    const deleteButton = document.createElement('button');
-                    deleteButton.innerHTML = '🗑️';
-                    deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
-                    deleteButton.onclick = () => {
-                        if (editMapInstanceRef.current) {
-                            editMapInstanceRef.current.removeLayer(marker);
-                        }
-                        markersRef.current = markersRef.current.filter(m => m !== marker);
-                        setPins(prev => prev.filter(p => p.id !== pinId));
-                        marker.closePopup();
-                    };
-                    marker.bindPopup(deleteButton);
-                    marker.on('click', () => marker.openPopup());
+                    bindDeletePopup(marker, pinId);
                 });
 
                 map.fitBounds(L.latLngBounds(coords), { padding: [20, 20] });
@@ -261,20 +279,7 @@ const AdicionarPlantacao: React.FC = () => {
         };
 
         setPins(prev => [...prev, newPin]);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.innerHTML = '🗑️';
-        deleteButton.style.cssText = 'background-color: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 16px;';
-        deleteButton.onclick = () => {
-            if (editMapInstanceRef.current) {
-                editMapInstanceRef.current.removeLayer(marker);
-            }
-            markersRef.current = markersRef.current.filter(m => m !== marker);
-            setPins(prev => prev.filter(p => p.id !== pinId));
-            marker.closePopup();
-        };
-        marker.bindPopup(deleteButton);
-        marker.on('click', () => marker.openPopup());
+        bindDeletePopup(marker, pinId);
     };
 
     const updatePolygon = (currentPins: typeof pins) => {
@@ -285,7 +290,6 @@ const AdicionarPlantacao: React.FC = () => {
         polylinesRef.current.forEach(line => editMapInstanceRef.current!.removeLayer(line));
         polylinesRef.current = [];
 
-        // 2️⃣ remover polígono anterior
         if (polygonRef.current) {
             editMapInstanceRef.current.removeLayer(polygonRef.current);
             polygonRef.current = null;
@@ -295,7 +299,6 @@ const AdicionarPlantacao: React.FC = () => {
         const hull = convexHull(currentPins.map(p => p.latlng));
         const tempPolygon = L.polygon(hull);
 
-        // 4️⃣ filtrar pins internos e remover visualmente
         const validPins: typeof pins = [];
 
         currentPins.forEach(pin => {
@@ -305,7 +308,6 @@ const AdicionarPlantacao: React.FC = () => {
             if (isHullVertex || !isInside) {
                 validPins.push(pin);
             } else {
-                // remover do mapa
                 editMapInstanceRef.current!.removeLayer(pin.marker);
                 markersRef.current = markersRef.current.filter(m => m !== pin.marker);
             }
