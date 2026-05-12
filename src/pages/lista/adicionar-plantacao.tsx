@@ -123,10 +123,10 @@ const AdicionarPlantacao: React.FC = () => {
     const touchEndRef = useRef<number | null>(null);
 
     const handleSwipe = () => {
-        if (!touchStartRef.current || !touchEndRef.current) return;
+        if (touchStartRef.current === null || touchEndRef.current === null) return;
         const distance = touchStartRef.current - touchEndRef.current;
-        const isLeftSwipe = distance > 50;
-        const isRightSwipe = distance < -50;
+        const isLeftSwipe = distance > 30;
+        const isRightSwipe = distance < -30;
 
         if (selectedPlantacao) {
             if (isLeftSwipe && tab === "details") {
@@ -135,6 +135,9 @@ const AdicionarPlantacao: React.FC = () => {
                 setTab("details");
             }
         }
+
+        touchStartRef.current = null;
+        touchEndRef.current = null;
     };
 
     const removePin = (pinId: string, marker: L.Marker) => {
@@ -504,14 +507,29 @@ const AdicionarPlantacao: React.FC = () => {
                 )}
             </IonHeader>
 
-            <IonContent
-                style={{ "--background": "#FFF9E5" } as React.CSSProperties}
-                onTouchStart={(e) => (touchStartRef.current = e.changedTouches[0].clientX)}
-                onTouchEnd={(e) => {
-                    touchEndRef.current = e.changedTouches[0].clientX;
-                    handleSwipe();
-                }}
-            >
+            <IonContent style={{ "--background": "#FFF9E5" } as React.CSSProperties}>
+                <Box
+                    onTouchStart={(e) => {
+                        touchStartRef.current = e.touches[0].clientX;
+                        touchEndRef.current = e.touches[0].clientX;
+                    }}
+                    onTouchMove={(e) => {
+                        if (touchStartRef.current !== null) {
+                            touchEndRef.current = e.touches[0].clientX;
+                        }
+                    }}
+                    onTouchEnd={(e) => {
+                        if (touchStartRef.current !== null) {
+                            touchEndRef.current = e.changedTouches[0].clientX;
+                            handleSwipe();
+                        }
+                    }}
+                    onTouchCancel={() => {
+                        touchStartRef.current = null;
+                        touchEndRef.current = null;
+                    }}
+                    sx={{ width: '100%', height: '100%', touchAction: 'pan-y' }}
+                >
                 {tab === "details" && selectedPlantacao ? (
                     <Box sx={{ px: 2, py: 3, display: 'flex', justifyContent: 'center' }}>
                         <Card sx={{ width: '100%', maxWidth: 760, borderRadius: 3, bgcolor: '#FFFDF6', boxShadow: '0 18px 46px rgba(0,0,0,0.08)' }}>
@@ -608,6 +626,7 @@ const AdicionarPlantacao: React.FC = () => {
                         </Card>
                     </Box>
                 )}
+                </Box>
             </IonContent>
         </IonPage>
     );
