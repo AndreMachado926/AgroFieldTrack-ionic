@@ -119,6 +119,24 @@ const AdicionarPlantacao: React.FC = () => {
     const polylinesRef = useRef<L.Polyline[]>([]);
     const isUpdating = useRef(false);
 
+    const touchStartRef = useRef<number | null>(null);
+    const touchEndRef = useRef<number | null>(null);
+
+    const handleSwipe = () => {
+        if (!touchStartRef.current || !touchEndRef.current) return;
+        const distance = touchStartRef.current - touchEndRef.current;
+        const isLeftSwipe = distance > 50;
+        const isRightSwipe = distance < -50;
+
+        if (selectedPlantacao) {
+            if (isLeftSwipe && tab === "details") {
+                setTab("edit");
+            } else if (isRightSwipe && tab === "edit") {
+                setTab("details");
+            }
+        }
+    };
+
     const removePin = (pinId: string, marker: L.Marker) => {
         if (!editMapInstanceRef.current) return;
         editMapInstanceRef.current.removeLayer(marker);
@@ -486,7 +504,14 @@ const AdicionarPlantacao: React.FC = () => {
                 )}
             </IonHeader>
 
-            <IonContent style={{ "--background": "#FFF9E5" }}>
+            <IonContent
+                style={{ "--background": "#FFF9E5" } as React.CSSProperties}
+                onTouchStart={(e) => (touchStartRef.current = e.changedTouches[0].clientX)}
+                onTouchEnd={(e) => {
+                    touchEndRef.current = e.changedTouches[0].clientX;
+                    handleSwipe();
+                }}
+            >
                 {tab === "details" && selectedPlantacao ? (
                     <Box sx={{ px: 2, py: 3, display: 'flex', justifyContent: 'center' }}>
                         <Card sx={{ width: '100%', maxWidth: 760, borderRadius: 3, bgcolor: '#FFFDF6', boxShadow: '0 18px 46px rgba(0,0,0,0.08)' }}>
