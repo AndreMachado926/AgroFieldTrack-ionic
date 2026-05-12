@@ -211,7 +211,6 @@ const AdicionarPasto: React.FC = () => {
         if (pins.length >= 3) {
             updatePolygon(pins);
         } else {
-            // Se menos de 3 pontos, remover polígono e linhas
             if (editMapInstanceRef.current && polygonRef.current) {
                 editMapInstanceRef.current.removeLayer(polygonRef.current);
                 polygonRef.current = null;

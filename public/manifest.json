@@ -1,6 +1,6 @@
 {
-  "short_name": "Ionic App",
-  "name": "My Ionic App",
+  "short_name": "AFT",
+  "name": "AgroFieldTrack",
   "icons": [
     {
       "src": "/image.png",
