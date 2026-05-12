@@ -33,6 +33,7 @@ interface Veterinario {
   telefone: string;
   email?: string;
   disponivel: boolean;
+  profilePic?: string;
 }
 
 interface Contact {
@@ -41,6 +42,7 @@ interface Contact {
   email?: string;
   telefone?: string;
   type?: string;
+  profilePic?: string;
 }
 
 const VeterinariosPage: React.FC = () => {
@@ -101,6 +103,7 @@ const VeterinariosPage: React.FC = () => {
           telefone: item.telefone || item.phone || "",
           email: item.email || "",
           disponivel: item.disponivel ?? true,
+          profilePic: item.profilePic || item.photo || item.avatar || ""
         }));
         setVeterinarios(list);
       } catch (err: any) {
@@ -133,6 +136,7 @@ const VeterinariosPage: React.FC = () => {
             email: otherUser.email || "",
             telefone: otherUser.telefone || otherUser.phone || "",
             type: otherUser.type === "user" ? "cliente" : otherUser.type,
+            profilePic: otherUser.profilePic || otherUser.photo || otherUser.avatar || ""
           };
         });
 
@@ -169,15 +173,19 @@ const VeterinariosPage: React.FC = () => {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-        <Avatar sx={{
-          width: 42,
-          height: 42,
-          backgroundColor: "#4A9782",
-          color: "#FFF9E5",
-          fontWeight: "bold",
-          mr: 2
-        }}>
-          {isContact ? item.username?.[0]?.toUpperCase() : item.nome?.[0]?.toUpperCase() || "?"}
+        <Avatar
+          src={item.profilePic}
+          sx={{
+            width: 42,
+            height: 42,
+            backgroundColor: item.profilePic ? 'transparent' : '#4A9782',
+            color: '#FFF9E5',
+            fontWeight: 'bold',
+            mr: 2,
+            objectFit: 'cover'
+          }}
+        >
+          {!item.profilePic && (isContact ? item.username?.[0]?.toUpperCase() : item.nome?.[0]?.toUpperCase() || '?')}
         </Avatar>
 
         <Box sx={{ flex: 1 }}>

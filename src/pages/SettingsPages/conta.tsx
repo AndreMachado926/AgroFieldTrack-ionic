@@ -39,10 +39,14 @@ const getUserIdFromToken = (): string | null => {
 const Conta: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
+  const [newEmail, setNewEmail] = useState('');
+  const [emailChangeCode, setEmailChangeCode] = useState('');
+  const [emailChangeStep, setEmailChangeStep] = useState<'idle' | 'codeSent'>('idle');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const userId = getUserIdFromToken();
@@ -70,14 +74,29 @@ const Conta: React.FC = () => {
     fetchUserInfo();
   }, [userId]);
 
-  const updateProfilePic = async (file: File) => {
-    if (!profileData) return;
-    const formData = new FormData();
-    formData.append('file', file);
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === 'string') {
+          resolve(result);
+        } else {
+          reject(new Error('Erro ao converter arquivo para base64'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
+  const updateProfilePic = async (file: File) => {
+    if (!profileData || !userId) return;
     try {
-      const res = await axios.post(`${API_BASE}/settings/profile-pic`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const base64 = await fileToBase64(file);
+      const res = await axios.post(`${API_BASE}/settings/profile-pic`, {
+        id: userId,
+        profilePic: base64
       });
       setProfileData(prev => prev ? { ...prev, profilePic: res.data.profilePic } : prev);
       setToastMessage('Foto de perfil atualizada com sucesso!');
@@ -94,6 +113,48 @@ const Conta: React.FC = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) updateProfilePic(file);
+  };
+
+  const requestEmailChange = async () => {
+    if (!userId || !newEmail) return;
+    try {
+      await axios.post(`${API_BASE}/settings/request-email-change`, {
+        id: userId,
+        newEmail
+      });
+      setEmailChangeStep('codeSent');
+      setToastMessage('Código enviado para o email atual.');
+      setToastColor('success');
+      setShowToast(true);
+    } catch (err: any) {
+      console.error(err);
+      setToastMessage(err?.response?.data?.message || 'Erro ao solicitar troca de email');
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const confirmEmailChange = async () => {
+    if (!userId || !emailChangeCode) return;
+    try {
+      const res = await axios.post(`${API_BASE}/settings/confirm-email-change`, {
+        id: userId,
+        code: emailChangeCode
+      });
+      setProfileData(prev => prev ? { ...prev, email: res.data.email } : prev);
+      setToastMessage('Email atualizado com sucesso!');
+      setToastColor('success');
+      setShowToast(true);
+      setShowChangeEmail(false);
+      setEmailChangeStep('idle');
+      setNewEmail('');
+      setEmailChangeCode('');
+    } catch (err: any) {
+      console.error(err);
+      setToastMessage(err?.response?.data?.message || 'Erro ao confirmar código');
+      setToastColor('danger');
+      setShowToast(true);
+    }
   };
 
   const updateUsername = async () => {
@@ -196,6 +257,11 @@ const Conta: React.FC = () => {
             <IonLabel style={{ color: '#004030' }}>Mudar Foto</IonLabel>
           </IonItem>
 
+          <IonItem button onClick={() => { setShowChangeEmail(true); setEmailChangeStep('idle'); setNewEmail(''); setEmailChangeCode(''); }}>
+            <IonIcon slot="start" icon={settingsOutline} style={{ color: '#004030' }} />
+            <IonLabel style={{ color: '#004030' }}>Trocar Email</IonLabel>
+          </IonItem>
+
           {/* Botão excluir conta */}
           <IonItem button onClick={() => setShowDeleteConfirm(true)}>
             <IonLabel style={{ color: 'crimson' }}>Excluir Conta</IonLabel>
@@ -232,6 +298,64 @@ const Conta: React.FC = () => {
                   <IonButton expand="block" style={{ '--background': '#004030', color: '#FFF9E5', marginTop: 20 }} onClick={updateUsername}>
                     Salvar Username
                   </IonButton>
+                </IonCol>
+              </IonRow>
+            </IonGrid>
+          </IonContent>
+        </IonModal>
+
+        <IonModal isOpen={showChangeEmail} onDidDismiss={() => setShowChangeEmail(false)}>
+          <IonHeader>
+            <IonToolbar style={{ '--background': '#FFF9E5', '--color': '#004030' }}>
+              <IonTitle>Trocar Email</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => setShowChangeEmail(false)}>Cancelar</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+
+          <IonContent style={{ '--background': '#FFF9E5', padding: 16 }}>
+            <IonGrid>
+              <IonRow>
+                <IonCol size="12">
+                  <IonItem>
+                    <IonLabel position="stacked">Novo Email</IonLabel>
+                    <IonInput
+                      value={newEmail}
+                      type="email"
+                      onIonChange={e => setNewEmail(e.detail.value || '')}
+                      placeholder="Digite o novo email"
+                    />
+                  </IonItem>
+                </IonCol>
+              </IonRow>
+
+              {emailChangeStep === 'codeSent' && (
+                <IonRow>
+                  <IonCol size="12">
+                    <IonItem>
+                      <IonLabel position="stacked">Código enviado</IonLabel>
+                      <IonInput
+                        value={emailChangeCode}
+                        onIonChange={e => setEmailChangeCode(e.detail.value || '')}
+                        placeholder="Digite o código recebido"
+                      />
+                    </IonItem>
+                  </IonCol>
+                </IonRow>
+              )}
+
+              <IonRow>
+                <IonCol size="12">
+                  {emailChangeStep === 'idle' ? (
+                    <IonButton expand="block" style={{ '--background': '#004030', color: '#FFF9E5', marginTop: 20 }} onClick={requestEmailChange}>
+                      Solicitar Código
+                    </IonButton>
+                  ) : (
+                    <IonButton expand="block" style={{ '--background': '#004030', color: '#FFF9E5', marginTop: 20 }} onClick={confirmEmailChange}>
+                      Confirmar Código
+                    </IonButton>
+                  )}
                 </IonCol>
               </IonRow>
             </IonGrid>
