@@ -20,6 +20,8 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import ClearIcon from '@mui/icons-material/Clear';
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import { useHistory } from "react-router-dom";
 import FooterNav from "../../components/FooterNav";
@@ -37,15 +39,11 @@ const API_BASE = "https://agrofieldtrack-node-1yka.onrender.com";
 
 const AgentChatPage: React.FC = () => {
   const history = useHistory();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      sender: "agent",
-      text: "Olá! Sou um assistente de IA aqui para ajudá-lo com informações sobre seus animais, plantações e muito mais. Como posso ajudá-lo hoje?",
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [attachedImage, setAttachedImage] = useState<File | null>(null);
+  const [attachedImageUrl, setAttachedImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState<"available" | "unavailable" | "checking">("checking");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -73,54 +71,158 @@ const AgentChatPage: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = () => {
-    if (!input.trim() || aiStatus !== "available") return;
+  useEffect(() => {
+    if (!attachedImage) {
+      setAttachedImageUrl(null);
+      return;
+    }
 
-    // Add user message
+    const url = URL.createObjectURL(attachedImage);
+    setAttachedImageUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [attachedImage]);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === 'string') {
+          resolve(result);
+        } else {
+          reject(new Error('Não foi possível converter a imagem para base64'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSendMessage = async () => {
+    // Debug entry
+    // eslint-disable-next-line no-console
+    console.debug('[Agent] handleSendMessage start', { inputPreview: input.slice(0, 120), aiStatus, isLoading });
+
+    if (!input.trim()) {
+      // eslint-disable-next-line no-console
+      console.warn('[Agent] Aborting send: empty input');
+      return;
+    }
+
+    if (aiStatus === 'unavailable') {
+      // eslint-disable-next-line no-console
+      console.warn('[Agent] AI service reports unavailable — still saving prompt and attempting AI call');
+      // continue: allow saving prompts even if AI is currently unavailable
+    }
+
+    // Extract user_id from authToken in localStorage
+    let userId: string | null = null;
+    try {
+      const authToken = localStorage.getItem('authToken');
+      if (authToken) {
+        const parts = authToken.split('.');
+        if (parts.length === 3) {
+          // Decode JWT payload (second part)
+          const payload = JSON.parse(atob(parts[1]));
+          userId = payload.user_id || payload.id || null;
+          // eslint-disable-next-line no-console
+          console.debug('[Agent] Extracted user_id from authToken:', userId);
+        }
+      }
+    } catch (err) {
+      console.error('[Agent] Failed to extract user_id from authToken:', err);
+    }
+
+    const promptText = input.trim();
+
+    // Add user message immediately for UI
     const userMessage: Message = {
       id: `msg-${Date.now()}`,
-      sender: "user",
-      text: input,
+      sender: 'user',
+      text: promptText,
       timestamp: new Date().toISOString(),
     };
-
     setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    setInput('');
     setIsLoading(true);
 
-    // Enviar para IA
-    axios
-      .post(`${API_BASE}/ai/chat`, {
-        message: input.trim(),
-        conversationHistory: messages.map((m) => ({
-          sender: m.sender,
-          text: m.text,
-        })),
-      })
-      .then((response) => {
-        const agentMessage: Message = {
-          id: `msg-${Date.now() + 1}`,
-          sender: "agent",
-          text: response.data.response || "Desculpe, recebi uma resposta vazia.",
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, agentMessage]);
-      })
-      .catch((err) => {
-        console.error("[Agent] Erro ao enviar mensagem:", err);
-        const errorMessage: Message = {
-          id: `msg-${Date.now() + 1}`,
-          sender: "agent",
-          text:
-            err.response?.data?.error ||
-            "Desculpe, ocorreu um erro ao processar sua pergunta. Verifique se o serviço de IA está disponível.",
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      })
-      .finally(() => {
-        setIsLoading(false);
+    const promptPayload: any = { 
+      texto: promptText,
+      user_id: userId
+    };
+    if (attachedImage) {
+      try {
+        promptPayload.imagem = await fileToBase64(attachedImage);
+      } catch (err) {
+        console.error('[Agent] Erro ao converter imagem para base64:', err);
+      }
+    }
+
+    // Send to AI FIRST and await response
+    // Build conversation history including the just-added user message
+    const historyForSend = [...messages, userMessage].map((m) => ({ sender: m.sender, text: m.text }));
+    try {
+      // eslint-disable-next-line no-console
+      console.debug('[Agent] Sending to AI at', `${API_BASE}/ai/chat`, { promptText: promptText.slice(0, 50), historyLength: historyForSend.length });
+      const aiRes = await axios.post(
+        `${API_BASE}/ai/chat`,
+        { message: promptText, conversationHistory: historyForSend },
+        { withCredentials: true }
+      );
+
+      // eslint-disable-next-line no-console
+      console.debug('[Agent] AI response received', { status: aiRes?.status, dataKeys: Object.keys(aiRes?.data || {}), data: aiRes?.data });
+      
+      const agentText = aiRes?.data?.response || aiRes?.data?.answer || 'Desculpe, recebi uma resposta vazia.';
+      const agentMessage: Message = {
+        id: `msg-${Date.now() + 1}`,
+        sender: 'agent',
+        text: agentText,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, agentMessage]);
+      // eslint-disable-next-line no-console
+      console.debug('[Agent] AI response added to messages');
+
+      // Only save prompt AFTER successful AI response
+      try {
+        // eslint-disable-next-line no-console
+        console.debug('[Agent] Saving prompt to', `${API_BASE}/prompts`, { texto: promptText.slice(0, 50), hasImage: !!promptPayload.imagem, user_id: userId });
+        const saveRes = await axios.post(`${API_BASE}/prompts`, promptPayload, { withCredentials: true });
+        // eslint-disable-next-line no-console
+        console.debug('[Agent] Prompt saved successfully', { data: saveRes?.data, status: saveRes?.status });
+        // clear attached image on success
+        setAttachedImage(null);
+      } catch (err: any) {
+        console.error('[Agent] Erro ao salvar prompt:', {
+          status: err?.response?.status,
+          error: err?.response?.data?.error,
+          message: err?.message,
+          fullError: err?.response?.data || err
+        });
+      }
+    } catch (err: any) {
+      console.error('[Agent] Erro ao enviar mensagem para AI:', {
+        status: err?.response?.status,
+        error: err?.response?.data?.error,
+        message: err?.message,
+        fullError: err?.response?.data || err
       });
+      const errorMessage: Message = {
+        id: `msg-${Date.now() + 1}`,
+        sender: 'agent',
+        text:
+          err?.response?.data?.error ||
+          'Desculpe, ocorreu um erro ao processar sua pergunta. Verifique se o serviço de IA está disponível.',
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      // NOTE: Prompt NOT saved on AI error
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -130,7 +232,21 @@ const AgentChatPage: React.FC = () => {
     }
   };
 
-  const canSend = input.trim().length > 0 && !isLoading && aiStatus === "available";
+  const handleAttachImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachedImage(file);
+    }
+  };
+
+  // Enable send when user has typed and not loading. Do not block on aiStatus here
+  const canSend = input.trim().length > 0 && !isLoading;
+
+  // Debugging: log send availability when inputs change
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.debug('[Agent] canSend=', canSend, { inputPreview: input.slice(0, 40), isLoading, aiStatus });
+  }, [canSend, input, isLoading, aiStatus]);
 
   const handleLogout = async () => {
     try {
@@ -249,6 +365,38 @@ const AgentChatPage: React.FC = () => {
         <div ref={messagesEndRef} />
       </Box>
 
+      {attachedImageUrl && (
+        <Box sx={{ px: 2, pb: 1, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Box
+            component="img"
+            src={attachedImageUrl}
+            alt={attachedImage?.name || 'Imagem anexada'}
+            sx={{
+              width: 88,
+              height: 88,
+              borderRadius: 2,
+              objectFit: 'cover',
+              border: '1px solid #DCD0A8',
+            }}
+          />
+          <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0, flexGrow: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: '#004030', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {attachedImage?.name}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#666' }}>
+              {(attachedImage?.size ? Math.round(attachedImage.size / 1024) : 0)} KB
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => setAttachedImage(null)}
+            sx={{ color: '#004030' }}
+          >
+            <ClearIcon />
+          </IconButton>
+        </Box>
+      )}
+
       {/* Input Area */}
       <Box
         sx={{
@@ -260,21 +408,40 @@ const AgentChatPage: React.FC = () => {
           alignItems: "flex-end",
         }}
       >
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handleAttachImage}
+        />
+
+        <IconButton
+          aria-label="Anexar imagem"
+          onClick={() => fileInputRef.current?.click()}
+          sx={{
+            backgroundColor: '#FFF',
+            border: '1px solid #DCD0A8',
+            color: '#004030',
+            p: 1,
+            '&:hover': {
+              backgroundColor: '#F5F5F5',
+            },
+          }}
+        >
+          <AttachFileIcon />
+        </IconButton>
+
         <TextField
           fullWidth
           multiline
           maxRows={4}
           minRows={1}
-          placeholder={aiStatus === "available" ? "Digite sua pergunta..." : "Serviço indisponível..."}
+          placeholder={aiStatus === "available" ? "Digite sua pergunta..." : aiStatus === "checking" ? "Verificando serviço de IA..." : "Serviço indisponível..."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isLoading}
-          helperText={
-            aiStatus !== "available"
-              ? "A IA está indisponível no momento; você pode digitar, mas o envio será bloqueado até ela ficar disponível."
-              : ""
-          }
           variant="outlined"
           size="small"
           sx={{

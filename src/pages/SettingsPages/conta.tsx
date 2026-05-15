@@ -45,8 +45,6 @@ const Conta: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
   const [newEmail, setNewEmail] = useState('');
-  const [emailChangeCode, setEmailChangeCode] = useState('');
-  const [emailChangeStep, setEmailChangeStep] = useState<'idle' | 'codeSent'>('idle');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const userId = getUserIdFromToken();
@@ -118,40 +116,19 @@ const Conta: React.FC = () => {
   const requestEmailChange = async () => {
     if (!userId || !newEmail) return;
     try {
-      await axios.post(`${API_BASE}/settings/request-email-change`, {
+      const res = await axios.post(`${API_BASE}/settings/updateemail`, {
         id: userId,
         newEmail
       });
-      setEmailChangeStep('codeSent');
-      setToastMessage('Código enviado para o email atual.');
+      setProfileData(prev => prev ? { ...prev, email: newEmail } : prev);
+      setShowChangeEmail(false);
+      setNewEmail('');
+      setToastMessage(res.data.message || 'Email alterado com sucesso.');
       setToastColor('success');
       setShowToast(true);
     } catch (err: any) {
       console.error(err);
       setToastMessage(err?.response?.data?.message || 'Erro ao solicitar troca de email');
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const confirmEmailChange = async () => {
-    if (!userId || !emailChangeCode) return;
-    try {
-      const res = await axios.post(`${API_BASE}/settings/confirm-email-change`, {
-        id: userId,
-        code: emailChangeCode
-      });
-      setProfileData(prev => prev ? { ...prev, email: res.data.email } : prev);
-      setToastMessage('Email atualizado com sucesso!');
-      setToastColor('success');
-      setShowToast(true);
-      setShowChangeEmail(false);
-      setEmailChangeStep('idle');
-      setNewEmail('');
-      setEmailChangeCode('');
-    } catch (err: any) {
-      console.error(err);
-      setToastMessage(err?.response?.data?.message || 'Erro ao confirmar código');
       setToastColor('danger');
       setShowToast(true);
     }
@@ -257,7 +234,7 @@ const Conta: React.FC = () => {
             <IonLabel style={{ color: '#004030' }}>Mudar Foto</IonLabel>
           </IonItem>
 
-          <IonItem button onClick={() => { setShowChangeEmail(true); setEmailChangeStep('idle'); setNewEmail(''); setEmailChangeCode(''); }}>
+          <IonItem button onClick={() => { setShowChangeEmail(true); setNewEmail(''); }}>
             <IonIcon slot="start" icon={settingsOutline} style={{ color: '#004030' }} />
             <IonLabel style={{ color: '#004030' }}>Trocar Email</IonLabel>
           </IonItem>
@@ -330,32 +307,11 @@ const Conta: React.FC = () => {
                 </IonCol>
               </IonRow>
 
-              {emailChangeStep === 'codeSent' && (
-                <IonRow>
-                  <IonCol size="12">
-                    <IonItem>
-                      <IonLabel position="stacked">Código enviado</IonLabel>
-                      <IonInput
-                        value={emailChangeCode}
-                        onIonChange={e => setEmailChangeCode(e.detail.value || '')}
-                        placeholder="Digite o código recebido"
-                      />
-                    </IonItem>
-                  </IonCol>
-                </IonRow>
-              )}
-
               <IonRow>
                 <IonCol size="12">
-                  {emailChangeStep === 'idle' ? (
-                    <IonButton expand="block" style={{ '--background': '#004030', color: '#FFF9E5', marginTop: 20 }} onClick={requestEmailChange}>
-                      Solicitar Código
-                    </IonButton>
-                  ) : (
-                    <IonButton expand="block" style={{ '--background': '#004030', color: '#FFF9E5', marginTop: 20 }} onClick={confirmEmailChange}>
-                      Confirmar Código
-                    </IonButton>
-                  )}
+                  <IonButton expand="block" style={{ '--background': '#004030', color: '#FFF9E5', marginTop: 20 }} onClick={requestEmailChange}>
+                    Alterar Email
+                  </IonButton>
                 </IonCol>
               </IonRow>
             </IonGrid>
