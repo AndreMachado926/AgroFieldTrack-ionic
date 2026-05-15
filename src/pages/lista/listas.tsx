@@ -14,8 +14,10 @@ import {
   IonModal,
   IonTitle
 } from "@ionic/react";
-import { Box, Card as MuiCard, CardContent, CardActions, Typography, Button as MuiButton, IconButton as MuiIconButton, Tabs, Tab, TextField, Fab } from "@mui/material";
+import { Box, Card as MuiCard, CardContent, CardActions, Typography, Button as MuiButton, IconButton as MuiIconButton, Tabs, Tab, TextField, Fab, InputAdornment } from "@mui/material";
 
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import ShareIcon from '@mui/icons-material/Share';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PetsIcon from '@mui/icons-material/Pets';
@@ -112,6 +114,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const AnimaisPage: React.FC = () => {
   const history = useHistory();
   const [segment, setSegment] = useState("animais");
+  const [searchTerm, setSearchTerm] = useState("");
   const [animais, setAnimais] = useState<Animal[]>([]);
   const [plantacoes, setPlantacoes] = useState<Plantacao[]>([]);
   const [pastos, setPastos] = useState<Pasto[]>([]);
@@ -152,6 +155,24 @@ const AnimaisPage: React.FC = () => {
   const [modalTab, setModalTab] = useState<'info' | 'mapa' | 'remedios'>('info');
 
   const API_BASE = ("https://agrofieldtrack-node-1yka.onrender.com").replace(/\/+$/, '');
+
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const filteredAnimais = animais.filter((item) => {
+    if (!normalizedSearchTerm) return true;
+    return [item.nome, item.raca]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(normalizedSearchTerm));
+  });
+  const filteredPlantacoes = plantacoes.filter((item) => {
+    if (!normalizedSearchTerm) return true;
+    return [item.planta, item.nome]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(normalizedSearchTerm));
+  });
+  const filteredPastos = pastos.filter((item) => {
+    if (!normalizedSearchTerm) return true;
+    return item.nome?.toLowerCase().includes(normalizedSearchTerm);
+  });
 
   // helper: ler token do cookie e decodificar payload JWT
   const getTokenFromCookie = (name = 'jwt'): string | null => {
@@ -1008,6 +1029,50 @@ const AnimaisPage: React.FC = () => {
           </Tabs>
         </Box>
 
+        {(segment === 'animais' || segment === 'plantacoes' || segment === 'pastos') && (
+          <Box sx={{ px: 2, mb: 2 }}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              label=""
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={segment === 'animais' ? '' : segment === 'plantacoes' ? 'Ex: Milho, Trigo' : 'Ex: Pasto 1'}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: '#4A5732' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm ? (
+                    <InputAdornment position="end">
+                      <MuiIconButton
+                        size="small"
+                        onClick={() => setSearchTerm('')}
+                        edge="end"
+                        sx={{ color: '#4A5732' }}
+                      >
+                        <ClearIcon fontSize="small" />
+                      </MuiIconButton>
+                    </InputAdornment>
+                  ) : null,
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: '#FFFDF6',
+                  borderRadius: '18px',
+                  boxShadow: '0 10px 24px rgba(0, 0, 0, 0.06)',
+                },
+                '& .MuiInputLabel-root': {
+                  color: '#4A5732',
+                },
+              }}
+            />
+          </Box>
+        )}
+
         <IonRefresher slot="fixed" onIonRefresh={refreshCurrentSegment}>
           <IonRefresherContent
             pullingIcon={null}
@@ -1017,11 +1082,11 @@ const AnimaisPage: React.FC = () => {
         </IonRefresher>
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 1, px: 2, pb: 14 }}>
-          {segment === 'animais' && animais.length === 0 && showEmptyState(<PetsIcon sx={{ fontSize: 56, color: '#004030' }} />, 'Nenhum animal encontrado.')}
-          {segment === 'plantacoes' && plantacoes.length === 0 && showEmptyState(<ForestIcon sx={{ fontSize: 56, color: '#004030' }} />, 'Nenhuma plantação encontrada.')}
-          {segment === 'pastos' && pastos.length === 0 && showEmptyState(<IonIcon icon={leafOutline} style={{ fontSize: 56, color: '#004030' }} />, 'Nenhum pasto encontrado.')}
+          {segment === 'animais' && filteredAnimais.length === 0 && showEmptyState(<PetsIcon sx={{ fontSize: 56, color: '#004030' }} />, searchTerm ? 'Nenhum animal corresponde à pesquisa.' : 'Nenhum animal encontrado.')}
+          {segment === 'plantacoes' && filteredPlantacoes.length === 0 && showEmptyState(<ForestIcon sx={{ fontSize: 56, color: '#004030' }} />, searchTerm ? 'Nenhuma plantação corresponde à pesquisa.' : 'Nenhuma plantação encontrada.')}
+          {segment === 'pastos' && filteredPastos.length === 0 && showEmptyState(<IonIcon icon={leafOutline} style={{ fontSize: 56, color: '#004030' }} />, searchTerm ? 'Nenhum pasto corresponde à pesquisa.' : 'Nenhum pasto encontrado.')}
 
-          {segment === 'animais' ? animais.map((item) => (
+          {segment === 'animais' ? filteredAnimais.map((item) => (
             <Box key={item._id}>
               <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#E9F8F3' }}>
                 <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />
@@ -1055,7 +1120,7 @@ const AnimaisPage: React.FC = () => {
                 </CardActions>
               </MuiCard>
             </Box>
-          )) : segment === 'plantacoes' ? plantacoes.map((item) => (
+          )) : segment === 'plantacoes' ? filteredPlantacoes.map((item) => (
             <Box key={item._id}>
               <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#FFF6EA' }}>
                 <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />
@@ -1089,7 +1154,7 @@ const AnimaisPage: React.FC = () => {
                 </CardActions>
               </MuiCard>
             </Box>
-          )) : pastos.map((item) => (
+          )) : filteredPastos.map((item) => (
             <Box key={item._id}>
               <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#E8F5E9' }}>
                 <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />

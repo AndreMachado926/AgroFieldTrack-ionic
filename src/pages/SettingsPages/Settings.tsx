@@ -130,11 +130,6 @@ const Settings: React.FC = () => {
             <IonLabel style={{ color: '#004030' }}>Arduino Logs</IonLabel>
             <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
           </IonItem>
-          <IonItem button onClick={handleGrafica}>
-            <IonIcon slot="start" icon={colorPaletteOutline} style={{ color: '#004030' }} />
-            <IonLabel style={{ color: '#004030' }}>Configurações Gráficas</IonLabel>
-            <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
-          </IonItem>
         </IonList>
 
         <IonToast
