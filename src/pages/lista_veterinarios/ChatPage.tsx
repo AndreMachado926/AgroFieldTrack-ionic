@@ -25,6 +25,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "./ChatPage.css";
+import { Avatar } from "@mui/material";
 
 interface DecodedToken {
     user_id: string;
@@ -37,6 +38,13 @@ interface AnimalInfo {
     raca: string;
     localizacaoX: number;
     localizacaoY: number;
+}
+interface OtherUserInfo {
+    username: string;
+    nome_completo?: string;
+    profilePic?: string;
+    photo?: string;
+    avatar?: string;
 }
 interface Mensagem {
     sender_id: string;
@@ -73,6 +81,7 @@ const ChatPage: React.FC = () => {
     const [showMapModal, setShowMapModal] = useState(false);
     const [selectedAnimalForMap, setSelectedAnimalForMap] = useState<AnimalInfo | null>(null);
     const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const [otherUserInfo, setOtherUserInfo] = useState<OtherUserInfo | null>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const mensagensRef = useRef<Mensagem[]>([]);
     const socketRef = useRef<Socket | null>(null);
@@ -169,6 +178,18 @@ const ChatPage: React.FC = () => {
             setAnimalsError(err?.response?.data?.message || err.message || "Erro ao obter animais");
         } finally {
             setAnimalsLoading(false);
+        }
+    };
+
+    const fetchOtherUserInfo = async (userId: string) => {
+        try {
+            const token = getToken();
+            const res = await axios.get(`${API_BASE}/veterinarios/${userId}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            setOtherUserInfo(res.data.data);
+        } catch (err: any) {
+            console.error("Erro ao buscar informações do usuário:", err);
         }
     };
 
@@ -388,6 +409,11 @@ const ChatPage: React.FC = () => {
         fetchAnimals();
     }, [currentUserId]);
 
+    useEffect(() => {
+        if (!chatUser2Id) return;
+        fetchOtherUserInfo(chatUser2Id);
+    }, [chatUser2Id]);
+
     const canSend = !!input.trim() && !!currentUserId && !!chat && !chatLoading;
 
     useEffect(() => {
@@ -491,7 +517,25 @@ const ChatPage: React.FC = () => {
                         </IonButton>
                     </IonButtons>
 
-                    <IonTitle className="chat-title">Chat</IonTitle>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                        <Avatar
+                            src={otherUserInfo?.profilePic || otherUserInfo?.photo || otherUserInfo?.avatar}
+                            sx={{
+                                width: 40,
+                                height: 40,
+                                backgroundColor: '#4A9782',
+                                color: '#FFF9E5',
+                                fontWeight: 'bold',
+                                objectFit: 'cover'
+                            }}
+                        >
+                            {!(otherUserInfo?.profilePic || otherUserInfo?.photo || otherUserInfo?.avatar) &&
+                                (otherUserInfo?.nome_completo?.[0] || otherUserInfo?.username?.[0] || '?').toUpperCase()}
+                        </Avatar>
+                        <IonTitle className="chat-title" style={{ marginBottom: 0 }}>
+                            {otherUserInfo?.nome_completo || otherUserInfo?.username || 'Chat'}
+                        </IonTitle>
+                    </div>
                 </IonToolbar>
 
             </IonHeader>

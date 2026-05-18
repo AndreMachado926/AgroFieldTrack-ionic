@@ -428,6 +428,11 @@ const AnimaisPage: React.FC = () => {
     fetchChatsForShare();
   };
 
+  const handleGoToAnimalOnMap = (animal: Animal) => {
+    if (!animal._id) return;
+    history.push(`/mapa?animalId=${encodeURIComponent(animal._id)}`);
+  };
+
   const handlePlantacaoClick = (plant: Plantacao) => {
     history.push(`/adicionar-plantacao/${plant._id}`);
   };
@@ -1090,8 +1095,8 @@ const AnimaisPage: React.FC = () => {
             <Box key={item._id}>
               <MuiCard sx={{ minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', backgroundColor: '#E9F8F3' }}>
                 <Box sx={{ position: 'absolute', inset: 0, backgroundImage: `url(${logo})`, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'cover', opacity: 0.08, pointerEvents: 'none' }} />
-                <CardContent sx={{ position: 'relative', zIndex: 1, flex: 1, pb: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <CardContent sx={{ position: 'relative', zIndex: 1, flex: 1, pb: 0.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                     <Box>
                       <Typography variant="h6" sx={{ color: '#004030', fontWeight: 700 }}>{item.nome}</Typography>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{`Raça: ${item.raca} • ${item.idade} anos`}</Typography>
@@ -1104,15 +1109,18 @@ const AnimaisPage: React.FC = () => {
                       <ShareIcon fontSize="small" sx={{ color: '#004030' }} />
                     </MuiIconButton>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {`Última localização: ${item.localizacaoX ?? '—'}, ${item.localizacaoY ?? '—'}`}
-                  </Typography>
                 </CardContent>
-                <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
+                <CardActions sx={{ px: 2, pb: 2, pt: 0, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
                   <MuiButton
-                    fullWidth
                     variant="contained"
-                    sx={{ backgroundColor: '#004030', color: '#FFF9E5', '&:hover': { backgroundColor: '#3A8772' } }}
+                    sx={{ flex: 1, minWidth: 140, backgroundColor: '#004030', color: '#FFF9E5', '&:hover': { backgroundColor: '#3A8772' } }}
+                    onClick={() => handleGoToAnimalOnMap(item)}
+                  >
+                    Aonde está
+                  </MuiButton>
+                  <MuiButton
+                    variant="contained"
+                    sx={{ flex: 1, minWidth: 140, backgroundColor: '#004030', color: '#FFF9E5', '&:hover': { backgroundColor: '#3A8772' } }}
                     onClick={() => handleAnimalClick(item)}
                   >
                     Ver detalhes
