@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
 import L from "leaflet";
@@ -79,6 +80,19 @@ const MapaAnimaisPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
+    const [focusAnimalId, setFocusAnimalId] = useState<string | null>(null);
+    const location = useLocation();
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        setFocusAnimalId(params.get('animalId'));
+    }, [location.search]);
+
+    useEffect(() => {
+        if (!mapRef.current) return;
+        if (!animais.length && !pastos.length) return;
+        createMap(animais, pastos, focusAnimalId ?? undefined);
+    }, [animais, pastos, focusAnimalId, userLocation]);
 
     const parseCoord = (value: any) => {
         if (value === undefined || value === null) return NaN;
@@ -139,7 +153,7 @@ const MapaAnimaisPage: React.FC = () => {
         return match ? match[2] : localStorage.getItem("authToken");
     };
 
-    const createMap = (animals: Animal[], pastosData: Pasto[]) => {
+    const createMap = (animals: Animal[], pastosData: Pasto[], focusAnimalId?: string) => {
         if (!mapRef.current) return;
         if (mapInstanceRef.current) mapInstanceRef.current.remove();
 
@@ -150,6 +164,8 @@ const MapaAnimaisPage: React.FC = () => {
             maxBoundsViscosity: 1.0,
         });
         mapInstanceRef.current = map;
+
+        let focusMarker: any = null;
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap & CartoDB',
@@ -172,6 +188,9 @@ const MapaAnimaisPage: React.FC = () => {
             const popupText = `<strong>${animal.nome}</strong><br/>${animal.raca ?? ""}${ownerName ? `<br/>Dono: ${ownerName}` : ''}`;
             const marker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
             marker.bindPopup(popupText);
+            if (animal._id && animal._id === focusAnimalId) {
+                focusMarker = marker;
+            }
             bounds.push([lat, lng]);
         });
 
@@ -184,10 +203,10 @@ const MapaAnimaisPage: React.FC = () => {
                     coords.push(L.latLng(pasto.pontosx[i], pasto.pontosy[i]));
                     bounds.push([pasto.pontosx[i], pasto.pontosy[i]]);
                 }
-                
+
                 // Calcular convex hull para desenhar polígono correto
                 const hullCoords = convexHull(coords);
-                
+
                 const polygon = L.polygon(hullCoords, {
                     color: '#4A9782',
                     weight: 2,
@@ -199,7 +218,13 @@ const MapaAnimaisPage: React.FC = () => {
             }
         });
 
-        if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+        if (focusMarker) {
+            const focusLatLng = focusMarker.getLatLng();
+            map.setView(focusLatLng, 15);
+            focusMarker.openPopup();
+        } else if (bounds.length > 0) {
+            map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50] });
+        }
 
         // Adicionar marcador do usuário se localização já foi obtida
         if (userLocation) {
@@ -349,7 +374,6 @@ const MapaAnimaisPage: React.FC = () => {
 
                 setAnimais(animalsData);
                 setPastos(pastosData);
-                createMap(animalsData, pastosData);
             } catch (err) {
                 console.error(err);
                 setError("Sessão expirada ou inválida");
