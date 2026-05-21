@@ -211,7 +211,6 @@ const ChatPage: React.FC = () => {
 
         const token = getToken();
 
-        console.log("sendAnimalInfo payload:", messagePayload); // Debug log
 
         try {
             // SEMPRE usar axios para garantir que a mensagem é guardada na DB
@@ -223,7 +222,6 @@ const ChatPage: React.FC = () => {
                 }
             );
 
-            console.log("Animal enviado com sucesso para DB"); // Debug log
 
             // Buscar mensagens atualizadas para garantir sincronização
             await new Promise(resolve => setTimeout(resolve, 300)); // pequeno delay para garantir que o servidor processou
@@ -232,7 +230,6 @@ const ChatPage: React.FC = () => {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             const updatedMessages: Mensagem[] = messagesRes.data || [];
-            console.log("Mensagens atualizadas:", updatedMessages); // Debug log
             mensagensRef.current = updatedMessages;
             setMensagens(updatedMessages);
             setShowAnimalModal(false);
@@ -381,7 +378,6 @@ const ChatPage: React.FC = () => {
         socketRef.current = socket;
 
         socket.on("connect", () => {
-            console.log("Socket conectado:", socket.id);
         });
 
         socket.on("new-message", (message: Mensagem) => {

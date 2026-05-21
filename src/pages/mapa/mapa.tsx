@@ -287,7 +287,6 @@ const MapaAnimaisPage: React.FC = () => {
         socketRef.current = socket;
 
         socket.on("connect", () => {
-            console.log("Socket conectado:", socket.id);
         });
 
         socket.on("userMoved", (location) => {

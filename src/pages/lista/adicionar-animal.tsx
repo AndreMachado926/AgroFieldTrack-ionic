@@ -52,7 +52,6 @@ const AdicionarAnimal: React.FC = () => {
   const [animal, setAnimal] = useState<Partial<Animal>>(() => {
     // Usar dados do state passado via location (dados frescos da API)
     if (locationState?.animal) {
-      console.log("Animal recebido da listagem:", locationState.animal);
       return locationState.animal;
     }
     
@@ -77,7 +76,6 @@ const AdicionarAnimal: React.FC = () => {
       try {
         if (!id) return; // Se não há ID, é novo animal
 
-        console.log("Buscando dados frescos do animal ID:", id);
         const token = getToken();
         if (!token) throw new Error("Não autenticado");
         
@@ -86,7 +84,6 @@ const AdicionarAnimal: React.FC = () => {
         });
         
         const freshAnimal = res.data.data;
-        console.log("Dados frescos do animal recebidos no adicionar-animal:", freshAnimal);
         setAnimal(freshAnimal);
       } catch (err: any) {
         console.error('Erro ao buscar dados do animal:', err);
@@ -102,7 +99,6 @@ const AdicionarAnimal: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
-      console.log("Submetendo animal:", animal);
       const token = getToken();
       if (!token) throw new Error("Não autenticado");
       const decoded: DecodedToken = jwtDecode(token);
@@ -122,18 +118,14 @@ const AdicionarAnimal: React.FC = () => {
         localizacaoY: animal.localizacaoY || 0,
         dono_id: userId
       };
-
-      console.log("Dados a enviar:", animalData);
-
+      
       // Se tem _id, é uma atualização; senão é um novo animal
       if (animal._id) {
-        console.log("Atualizando animal com ID:", animal._id);
         await axios.put(`${API_BASE}/animais/${animal._id}`, animalData, {
           headers: { Authorization: `Bearer ${token}` },
         });
         alert('Animal atualizado com sucesso!');
       } else {
-        console.log("Criando novo animal");
         await axios.post(`${API_BASE}/animais`, animalData, {
           headers: { Authorization: `Bearer ${token}` },
         });
