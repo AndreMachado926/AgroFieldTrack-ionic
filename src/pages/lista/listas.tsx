@@ -193,14 +193,11 @@ const AnimaisPage: React.FC = () => {
     try {
       const token = getToken();
       if (!token) throw new Error("Não autenticado");
-      console.log("Token obtido:", token);
       const decoded: DecodedToken = jwtDecode(token);
       const userId = decoded.user_id;
-      console.log("User ID extraído do token:", userId);
       const res = await axios.get(`${API_BASE}/animais/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Dados dos animais recebidos:", res.data);
       const animalsData: Animal[] = res.data.data || [];
       setAnimais(animalsData);
     } catch (err: any) {
@@ -354,7 +351,6 @@ const AnimaisPage: React.FC = () => {
       const res = await axios.get(`${API_BASE}/chats/user/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Chats carregados:", res.data);
       setChats(res.data || []);
     } catch (err: any) {
       console.error('Erro ao buscar chats:', err);
@@ -405,8 +401,6 @@ const AnimaisPage: React.FC = () => {
 
   const handleAnimalClick = async (animal: Animal) => {
     try {
-      console.log("Clicou no animal:", animal);
-      
       if (!animal._id) {
         console.warn("Animal sem _id, redirecionando para adicionar novo");
         history.push('/adicionar-animal');
@@ -843,7 +837,6 @@ const AnimaisPage: React.FC = () => {
     if (showPlantacaoModal && plantacaoModalTab === 'mapa' && selectedPlantacao) {
       // delay pequeno para garantir que o container do modal/mapa está no DOM
       const t = setTimeout(() => {
-        console.log('Opening plantacao mapa, selectedPlantacao:', selectedPlantacao);
         createPlantacaoMap();
       }, 120);
       return () => clearTimeout(t);

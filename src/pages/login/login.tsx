@@ -35,7 +35,6 @@ const Login: React.FC = () => {
       const token = res.data.token;
       if (token) {
         localStorage.setItem("authToken", token); // ✅ Guardar no localStorage
-        console.log("Token guardado:", token);
       }
 
       history.replace("/lista");
