@@ -113,7 +113,7 @@ const ListaVetPage: React.FC = () => {
       <AppBar position="static" sx={{ backgroundColor: "#FFF9E5", color: "#004030", boxShadow: 'none', borderBottom: '1px solid #DCD0A8' }}>
         <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2 }}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Lista Veterinários
+            Lista de Pacientes
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <IconButton href="/#/settings" sx={{ color: "#004030" }}>
