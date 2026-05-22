@@ -1035,7 +1035,7 @@ const AnimaisPage: React.FC = () => {
               label=""
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={segment === 'animais' ? '' : segment === 'plantacoes' ? 'Ex: Milho, Trigo' : 'Ex: Pasto 1'}
+              placeholder={segment === 'animais' ? '' : segment === 'plantacoes' ? '' : ''}
               slotProps={{
                 input: {
                   startAdornment: (
