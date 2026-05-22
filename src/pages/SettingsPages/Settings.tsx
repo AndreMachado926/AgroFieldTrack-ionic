@@ -36,6 +36,7 @@ const Settings: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [userType, setUserType] = useState<string | null>(null);
 
   const getToken = () => {
     const match = document.cookie.match(/(^| )auth=([^;]+)/);
@@ -58,6 +59,20 @@ const Settings: React.FC = () => {
         window.location.href = "/";
         return;
       }
+      
+      // Fetch do tipo de utilizador
+      const fetchUserType = async () => {
+        try {
+          const typeRes = await axios.get(`${API_BASE}/users/${decoded.user_id}/type`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setUserType(typeRes.data.type);
+        } catch (err) {
+          console.warn("Falha ao obter tipo de usuário:", err);
+        }
+      };
+      
+      fetchUserType();
       setIsLoading(false);
     } catch (err) {
       console.error("Erro ao decodificar token:", err);
@@ -125,11 +140,13 @@ const Settings: React.FC = () => {
             <IonLabel style={{ color: '#004030' }}>Editar Perfil</IonLabel>
             <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
           </IonItem>
-          <IonItem button onClick={handleArduino}>
-            <IonIcon slot="start" icon={hardwareChipOutline} style={{ color: '#004030' }} />
-            <IonLabel style={{ color: '#004030' }}>Arduino Logs</IonLabel>
-            <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
-          </IonItem>
+          {userType === 'admin' && (
+            <IonItem button onClick={handleArduino}>
+              <IonIcon slot="start" icon={hardwareChipOutline} style={{ color: '#004030' }} />
+              <IonLabel style={{ color: '#004030' }}>Arduino Logs</IonLabel>
+              <IonIcon slot="end" icon={chevronForward} style={{ color: '#004030' }} />
+            </IonItem>
+          )}
         </IonList>
 
         <IonToast

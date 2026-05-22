@@ -1579,8 +1579,6 @@ const AnimaisPage: React.FC = () => {
           <AddIcon />
         </Fab>
       )}
-
-      {/* MENU INFERIOR - UMA SÓ LINHA */}
       <FooterNav />
 
       {/* Add to your CSS */}
