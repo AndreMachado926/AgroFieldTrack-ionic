@@ -31,17 +31,16 @@ const FooterNav: React.FC = () => {
         { href: "/mapa", icon: mapOutline, label: "Mapa" },
         { href: "/agent", icon: sparklesOutline, label: "Agent" },
         { href: "/lista", icon: listOutline, label: "Lista" },
-        { href: "/lista-vet", icon: listOutline, label: "Lista Vet" },
-        { href: "/veterinarios", icon: bandageOutline, label: "Veterinários" },
+        { href: "/lista-vet", icon: listOutline, label: "Lista pacientes" },
+        { href: "/veterinarios", icon: bandageOutline, label: "Clientes" },
       ];
     }
 
     if (type === "veterinario") {
       return [
         { href: "/mapa", icon: mapOutline, label: "Mapa" },
-        { href: "/agent", icon: sparklesOutline, label: "Agent" },
-        { href: "/lista-vet", icon: listOutline, label: "Lista Vet" },
-        { href: "/veterinarios", icon: bandageOutline, label: "Veterinários" },
+        { href: "/lista-vet", icon: listOutline, label: "Lista pacientes" },
+        { href: "/veterinarios", icon: bandageOutline, label: "Clientes" },
       ];
     }
 

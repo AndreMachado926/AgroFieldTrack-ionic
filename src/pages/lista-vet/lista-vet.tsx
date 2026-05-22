@@ -109,7 +109,7 @@ const ListaVetPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ backgroundColor: "#FFF9E5", color: "#004030", minHeight: '100vh' }}>
+    <Box sx={{ backgroundColor: "#FFF9E5", color: "#004030", minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <AppBar position="static" sx={{ backgroundColor: "#FFF9E5", color: "#004030", boxShadow: 'none', borderBottom: '1px solid #DCD0A8' }}>
         <Toolbar sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2 }}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -126,7 +126,7 @@ const ListaVetPage: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ py: 2 }}>
+      <Container maxWidth="md" sx={{ py: 2, flex: 1 }}>
         {loading && <Typography sx={{ color: "#004030" }}>Carregando...</Typography>}
         {error && <Typography sx={{ color: "error.main" }}>{error}</Typography>}
         {!loading && !error && animais.length === 0 && (
@@ -152,7 +152,7 @@ const ListaVetPage: React.FC = () => {
           </Card>
         ))}
       </Container>
-
+      
       <FooterNav />
     </Box>
   );
